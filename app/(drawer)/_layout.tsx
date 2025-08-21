@@ -18,6 +18,9 @@ const DrawerLayout = () => {
     >
       <Drawer.Screen name="scan" options={{ headerShown: false }} />
       <Drawer.Screen name="my-journal" options={{ headerShown: false }} />
+      <Drawer.Screen name="my-challenges" options={{ headerShown: false }} />
+      <Drawer.Screen name="notifications" options={{ headerShown: false }} />
+      <Drawer.Screen name="settings" options={{ headerShown: false }} />
     </Drawer>
   );
 };

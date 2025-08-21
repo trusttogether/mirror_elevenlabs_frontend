@@ -6,9 +6,10 @@ import tw from "twrnc";
 import { useNavigation } from "@react-navigation/native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Button from "../UI/Button";
-import { router } from "expo-router";
+import { router, usePathname } from "expo-router";
 import Foundation from "@expo/vector-icons/Foundation";
 import {
+  LogoutIcon,
   MyChallengesIcon,
   MyJournalIcon,
   NotificationsIcon,
@@ -19,11 +20,12 @@ import {
 const CustomDrawer = ({ ...props }) => {
   const navigation = useNavigation();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const pathname = usePathname(); // Get current route path
 
   // Hardcoded user data
   const userData = {
     data: {
-      firstName: "John Doe",
+      firstName: "Sophia Rose",
       phone: "+1234567890",
       verified: true,
     },
@@ -33,22 +35,22 @@ const CustomDrawer = ({ ...props }) => {
     {
       name: "Scans",
       icon: <ScanIcon />,
-      route: "/vehicleInfo",
+      route: "/scan",
     },
     {
       name: "My Journal",
       icon: <MyJournalIcon />,
-      route: "/paymentmethod",
+      route: "/my-journal",
     },
     {
       name: "My Challenges",
       icon: <MyChallengesIcon />,
-      route: "/tripDetails",
+      route: "/my-challenges",
     },
     {
       name: "Notifications",
       icon: <NotificationsIcon />,
-      route: "/settings",
+      route: "/notifications",
     },
     {
       name: "Settings",
@@ -75,26 +77,22 @@ const CustomDrawer = ({ ...props }) => {
     }, 200);
   };
 
+  // Check if a route is active
+  const isRouteActive = (route: any) => {
+    return pathname === route;
+  };
+
   return (
     <>
       <DrawerContentScrollView
         showsVerticalScrollIndicator={false}
         {...props}
-        contentContainerStyle={tw`px-0`}
+        contentContainerStyle={tw`px-0 bg-white min-h-full`}
       >
-        <View style={tw`flex-row items-center justify-between`}>
-          <View
-            style={tw`bg-[#F7F8F9] items-center rounded-[8px] justify-center px-6 py-2`}
-          >
-            <Text fontSize={13}>
-              {userData?.data?.verified ? "Verified" : "Unverified"}
-            </Text>
-          </View>
-        </View>
         <View
-          style={tw`min-h-[10rem] items-center justify-center border-b-[1px] border-gray-200 w-full`}
+          style={tw`min-h-[10rem] items-start justify-center border-b-[1px] border-gray-200 px-4 w-full`}
         >
-          <View style={tw`flex-row items-center gap-2`}>
+          <View style={tw`flex-row items-center gap-4`}>
             <View style={tw`h-[4rem] w-[4rem]`}>
               <FontAwesome name="user-circle" size={64} color="#7D7B7B" />
             </View>
@@ -106,20 +104,11 @@ const CustomDrawer = ({ ...props }) => {
 
               <View style={tw`flex-row items-center gap-2`}>
                 <View
-                  style={tw`bg-[#F7F8F9] mt-2 items-center rounded-[8px] justify-center px-4 py-1`}
+                  style={tw`mt-2 items-center rounded-[8px] justify-center`}
                 >
                   <Text fontSize={12} classN="#817C7C">
-                    {userData?.data?.phone}
+                    Edit Profile
                   </Text>
-                </View>
-
-                <View
-                  style={tw`bg-[#F7F8F9] flex-row mt-2 items-center rounded-[8px] justify-center px-2 py-1`}
-                >
-                  <Text fontSize={12} classN="#817C7C">
-                    5.0
-                  </Text>
-                  <Foundation name="star" size={14} color="#FBCA17" />
                 </View>
               </View>
             </View>
@@ -128,31 +117,55 @@ const CustomDrawer = ({ ...props }) => {
 
         {/* Other links */}
         <View style={tw`mt-[1.5rem] px-3`}>
-          {hyperLinks.map((item, index) => (
-            <TouchableOpacity
-              onPress={() => router.push(item?.route)}
-              key={index}
-              style={tw`flex-row mb-6 items-center justify-between`}
-            >
-              <View style={tw`flex-row items-center gap-5`}>
-                <View
-                  style={tw`h-[3rem] bg-[#FDFDFD] border-solid border-[1px] border-[#E3E3E7] w-[3rem] items-center justify-center rounded-[12px]`}
-                >
-                  {item.icon}
+          {hyperLinks.map((item, index) => {
+            const isActive = isRouteActive(item.route);
+
+            return (
+              <TouchableOpacity
+                onPress={() => router.push(item?.route)}
+                key={index}
+                style={[
+                  tw`flex-row items-center justify-between p-3`,
+                  isActive && tw`bg-black/4`, // Gray background for active route
+                ]}
+              >
+                <View style={tw`flex-row items-center gap-3`}>
+                  <View
+                    style={[
+                      tw`h-[3rem] bg-transparent w-[3rem] items-center justify-center rounded-[12px]`,
+                    ]}
+                  >
+                    {item.icon}
+                  </View>
+
+                  <Text
+                    type="body"
+                    fontSize={18}
+                    classN={isActive ? "text-gray-800 font-medium" : ""} // Bold text for active route
+                  >
+                    {item.name}
+                  </Text>
                 </View>
-              </View>
-            </TouchableOpacity>
-          ))}
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* logout button */}
-        <View style={tw`mt-[4rem]`}>
-          <Button
-            btnStyle="mt-7 bg-[#F44336]"
+        <View style={tw`mt-[12rem] px-5`}>
+          <TouchableOpacity
+            style={tw`flex-row items-center gap-3 p-3 rounded-xl`}
             onPress={handleLogoutClick}
-            text={true}
-            title="Logout"
-          />
+          >
+            <View
+              style={tw`h-[3rem] w-[3rem] items-center justify-center rounded-[12px] bg-[#FDFDFD]`}
+            >
+              <LogoutIcon />
+            </View>
+            <Text type="body" fontSize={18}>
+              Logout
+            </Text>
+          </TouchableOpacity>
         </View>
       </DrawerContentScrollView>
     </>
