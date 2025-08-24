@@ -6,6 +6,11 @@ import {
   Easing,
   StyleSheet,
   Image,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from "react-native";
 import React, { useEffect, useRef, useState } from "react";
 import DrawerHeader from "../../components/drawer/DrawerHeader";
@@ -19,10 +24,30 @@ import {
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { ActivityIndicator } from "react-native-paper";
 import { Ionicons } from "@expo/vector-icons";
+import { Audio } from "expo-av";
+import * as Speech from "expo-speech";
+import axios from "axios";
+
+interface Message {
+  id: number;
+  text: string;
+  sender: "user" | "ai";
+  timestamp: Date;
+}
 
 const Scan = () => {
   const backgroundImage = require("../../assets/images/aiimage.jpg");
-  const [activeButton, setActiveButton] = useState("face"); // Track active button
+  const [activeButton, setActiveButton] = useState<string | null>(null);
+  const [recording, setRecording] = useState(false);
+  const [transcribedText, setTranscribedText] = useState("");
+  const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [hasDetectedSpeech, setHasDetectedSpeech] = useState(false);
+  const [microphonePermission, setMicrophonePermission] = useState<
+    boolean | null
+  >(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const [cameraActive, setCameraActive] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -36,76 +61,336 @@ const Scan = () => {
   const cameraRef = useRef(null);
   const tipTimerRef = useRef(null);
 
-  // Start scanning animation
+  // Voice animation refs
+  const orbScale = useRef(new Animated.Value(1)).current;
+  const voiceWaveAnim = useRef(new Animated.Value(0)).current;
+  const bottomSheetHeight = useRef(new Animated.Value(0)).current;
+
+  const recordingInstanceRef = useRef(null);
+  const speechSimulationRef = useRef(null);
+  const silenceTimerRef = useRef(null);
+
+  // Check microphone permission on component mount
   useEffect(() => {
-    if (scanning) {
+    checkMicrophonePermission();
+  }, []);
+
+  const checkMicrophonePermission = async () => {
+    try {
+      const { status } = await Audio.getPermissionsAsync();
+      setMicrophonePermission(status === "granted");
+    } catch (error) {
+      console.error("Error checking microphone permission:", error);
+      setMicrophonePermission(false);
+    }
+  };
+
+  const requestMicrophonePermission = async () => {
+    try {
+      const { status } = await Audio.requestPermissionsAsync();
+      setMicrophonePermission(status === "granted");
+      return status === "granted";
+    } catch (error) {
+      console.error("Error requesting microphone permission:", error);
+      setMicrophonePermission(false);
+      return false;
+    }
+  };
+
+  // Start voice animation
+  useEffect(() => {
+    if (recording) {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(scanLinePosition, {
-            toValue: 1,
-            duration: 2000,
+          Animated.timing(orbScale, {
+            toValue: 1.1,
+            duration: 500,
             easing: Easing.linear,
             useNativeDriver: true,
           }),
-          Animated.timing(scanLinePosition, {
-            toValue: 0,
-            duration: 2000,
+          Animated.timing(orbScale, {
+            toValue: 1,
+            duration: 500,
             easing: Easing.linear,
             useNativeDriver: true,
           }),
         ])
       ).start();
 
-      // Set initial tip
-      setScanTip("Avoid obstructions like glasses or hair");
-
-      // Change tip after 2.5 seconds (half of the total scanning time)
-      tipTimerRef.current = setTimeout(() => {
-        setScanTip("Ensure good lighting");
-      }, 2500);
+      Animated.loop(
+        Animated.timing(voiceWaveAnim, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      ).start();
     } else {
-      scanLinePosition.stopAnimation();
-      scanLinePosition.setValue(0);
-
-      // Clear timer when scanning stops
-      if (tipTimerRef.current) {
-        clearTimeout(tipTimerRef.current);
-        tipTimerRef.current = null;
-      }
+      orbScale.stopAnimation();
+      voiceWaveAnim.stopAnimation();
+      orbScale.setValue(1);
+      voiceWaveAnim.setValue(0);
     }
-  }, [scanning]);
+  }, [recording]);
 
-  // Clean up timer on unmount
+  // Handle bottom sheet animation
+  useEffect(() => {
+    if (showBottomSheet) {
+      Animated.timing(bottomSheetHeight, {
+        toValue: 1,
+        duration: 300,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: false,
+      }).start();
+    } else {
+      Animated.timing(bottomSheetHeight, {
+        toValue: 0,
+        duration: 300,
+        easing: Easing.in(Easing.ease),
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [showBottomSheet]);
+
+  // Clean up on unmount
   useEffect(() => {
     return () => {
-      if (tipTimerRef.current) {
-        clearTimeout(tipTimerRef.current);
-      }
+      if (tipTimerRef.current) clearTimeout(tipTimerRef.current);
+      if (speechSimulationRef.current)
+        clearInterval(speechSimulationRef.current);
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      stopRecording();
     };
   }, []);
 
+  const handleVoicePress = async () => {
+    if (activeButton === "voice") {
+      setActiveButton(null);
+      setShowBottomSheet(false);
+      setHasDetectedSpeech(false);
+      stopRecording();
+      return;
+    }
+
+    if (microphonePermission === null) {
+      await checkMicrophonePermission();
+    }
+
+    if (!microphonePermission) {
+      const granted = await requestMicrophonePermission();
+      if (!granted) {
+        alert("Microphone permission is required for voice features");
+        return;
+      }
+    }
+
+    setActiveButton("voice");
+    setHasDetectedSpeech(false);
+
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+
+      recordingInstanceRef.current = recording;
+      setRecording(true);
+      await recording.startAsync();
+
+      startVoiceDetection();
+    } catch (err) {
+      console.error("Failed to start recording", err);
+      setActiveButton(null);
+      setRecording(false);
+    }
+  };
+
+  const startVoiceDetection = () => {
+    if (speechSimulationRef.current) {
+      clearInterval(speechSimulationRef.current);
+    }
+
+    let detectionCount = 0;
+
+    speechSimulationRef.current = setInterval(() => {
+      if (!recording) {
+        clearInterval(speechSimulationRef.current);
+        return;
+      }
+
+      detectionCount++;
+
+      if (detectionCount === 3) {
+        setHasDetectedSpeech(true);
+        setShowBottomSheet(true);
+        simulateSpeechRecognition();
+        clearInterval(speechSimulationRef.current);
+      }
+    }, 500);
+  };
+
+  const stopRecording = async () => {
+    setRecording(false);
+    if (recordingInstanceRef.current) {
+      try {
+        await recordingInstanceRef.current.stopAndUnloadAsync();
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+        recordingInstanceRef.current = null;
+      } catch (err) {
+        console.error("Error stopping recording", err);
+      }
+    }
+    setTranscribedText("");
+
+    if (speechSimulationRef.current) {
+      clearInterval(speechSimulationRef.current);
+      speechSimulationRef.current = null;
+    }
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+  };
+
+  const simulateSpeechRecognition = () => {
+    if (speechSimulationRef.current) {
+      clearInterval(speechSimulationRef.current);
+    }
+
+    const phrases = [
+      "Hello there!",
+      "How are you doing today?",
+      "I'd like to know more about my skin health",
+      "Can you give me some skincare tips?",
+      "Thank you for your help!",
+    ];
+
+    let currentText = "";
+    let phraseIndex = 0;
+    let charIndex = 0;
+
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+    }
+
+    speechSimulationRef.current = setInterval(() => {
+      if (!recording) {
+        clearInterval(speechSimulationRef.current);
+        return;
+      }
+
+      if (phraseIndex >= phrases.length) {
+        clearInterval(speechSimulationRef.current);
+        stopRecording();
+        return;
+      }
+
+      if (charIndex < phrases[phraseIndex].length) {
+        currentText += phrases[phraseIndex][charIndex];
+        setTranscribedText(currentText);
+        charIndex++;
+
+        if (silenceTimerRef.current) {
+          clearTimeout(silenceTimerRef.current);
+        }
+        silenceTimerRef.current = setTimeout(() => {
+          if (recording) stopRecording();
+        }, 2000);
+      } else {
+        const userMessage = {
+          id: Date.now(),
+          text: phrases[phraseIndex],
+          sender: "user",
+          timestamp: new Date(),
+        };
+        setChatMessages((prev) => [...prev, userMessage]);
+
+        // Process AI response
+        setTimeout(() => {
+          processAIResponse(phrases[phraseIndex]);
+        }, 1000);
+
+        phraseIndex++;
+        charIndex = 0;
+        currentText = "";
+
+        if (phraseIndex >= phrases.length) {
+          clearInterval(speechSimulationRef.current);
+          stopRecording();
+        }
+      }
+    }, 80);
+  };
+
+  const processAIResponse = async (userMessage: string) => {
+    setIsProcessing(true);
+    try {
+      // Simulate API call - replace with your actual API endpoint
+      const aiResponse = {
+        text: `I understand you said: "${userMessage}". I can help you with skincare advice based on your facial analysis. Your skin looks great overall!`,
+        audio: null, // In a real app, this would be base64 audio from your API
+      };
+
+      const aiMessage = {
+        id: Date.now() + 1,
+        text: aiResponse.text,
+        sender: "ai",
+        timestamp: new Date(),
+      };
+
+      setChatMessages((prev) => [...prev, aiMessage]);
+
+      // Speak the response
+      Speech.speak(aiResponse.text, {
+        onStart: () => setIsSpeaking(true),
+        onDone: () => setIsSpeaking(false),
+        onError: () => setIsSpeaking(false),
+      });
+    } catch (error) {
+      console.error("Error processing AI response:", error);
+      const errorMessage = {
+        id: Date.now() + 1,
+        text: "Sorry, I encountered an error. Please try again.",
+        sender: "ai",
+        timestamp: new Date(),
+      };
+      setChatMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSendMessage = async (text: string) => {
+    if (!text.trim()) return;
+
+    const userMessage = {
+      id: Date.now(),
+      text: text,
+      sender: "user",
+      timestamp: new Date(),
+    };
+    setChatMessages((prev) => [...prev, userMessage]);
+
+    await processAIResponse(text);
+  };
+
   const handleFacialScanPress = async () => {
     if (!cameraActive) {
-      // Request camera permission if not already granted
       if (!permission?.granted) {
         await requestPermission();
       }
       setCameraActive(true);
-
-      // Start scanning automatically after a brief delay to allow camera to initialize
-      setTimeout(() => {
-        startScanning();
-      }, 500);
+      setTimeout(() => startScanning(), 500);
     }
   };
 
   const startScanning = () => {
     setScanning(true);
-
-    // Scanning process for 5 seconds then automatically capture
-    setTimeout(() => {
-      captureImage();
-    }, 5000);
+    setTimeout(() => captureImage(), 5000);
   };
 
   const captureImage = async () => {
@@ -113,18 +398,11 @@ const Scan = () => {
       try {
         setScanning(false);
         setProcessing(true);
-
-        // Take picture automatically
         const photo = await cameraRef.current.takePictureAsync({
           quality: 0.8,
           base64: true,
-          skipProcessing: false, // Process the image for better quality
         });
-
-        // Store the captured image for preview
         setCapturedImage(photo.uri);
-
-        // Process the image
         await processFacialScan(photo);
       } catch (error) {
         console.error("Error capturing image:", error);
@@ -136,41 +414,27 @@ const Scan = () => {
 
   const processFacialScan = async (photoData: any) => {
     try {
-      // API call to your endpoint
-      // Replace this with your actual API call
-      console.log("Sending image to API endpoint");
+      // Simulate API processing
+      console.log("Processing facial scan...");
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // Create form data for the image
-      const formData = new FormData();
-      formData.append("image", {
-        uri: photoData.uri,
-        type: "image/jpeg",
-        name: "face_scan.jpg",
-      });
-      formData.append("timestamp", new Date().toISOString());
-
-      // Send to your API endpoint
-      const response = await fetch("https://your-api-endpoint.com/face-scan", {
-        method: "POST",
-        body: formData,
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      // Handle the response
-      console.log("Scan result:", result);
-
-      // Reset states after processing
       setProcessing(false);
       setCameraActive(false);
       setCapturedImage(null);
+
+      // Add success message to chat if bottom sheet is open
+      if (showBottomSheet) {
+        const successMessage = {
+          id: Date.now(),
+          text: "Facial scan completed successfully! I've analyzed your skin health.",
+          sender: "ai",
+          timestamp: new Date(),
+        };
+        setChatMessages((prev) => [...prev, successMessage]);
+        Speech.speak(
+          "Facial scan completed successfully! I've analyzed your skin health."
+        );
+      }
     } catch (error) {
       console.error("Error processing facial scan:", error);
       setProcessing(false);
@@ -186,10 +450,17 @@ const Scan = () => {
     setCapturedImage(null);
   };
 
+  const closeBottomSheet = () => {
+    setShowBottomSheet(false);
+    setActiveButton(null);
+    setHasDetectedSpeech(false);
+    stopRecording();
+  };
+
   if (!permission) {
     return (
       <View style={tw`flex-1 justify-center items-center`}>
-        <Text classN={``}>Requesting camera permission...</Text>
+        <Text>Requesting camera permission...</Text>
       </View>
     );
   }
@@ -214,12 +485,9 @@ const Scan = () => {
     <View style={tw`flex-1`}>
       {cameraActive ? (
         <View style={tw`flex-1 bg-black`}>
-          {/* Show camera view only when not processing */}
           {!processing && (
             <CameraView style={tw`flex-1`} facing="front" ref={cameraRef} />
           )}
-
-          {/* Show captured image preview when processing */}
           {processing && capturedImage && (
             <Image
               source={{ uri: capturedImage }}
@@ -228,9 +496,7 @@ const Scan = () => {
             />
           )}
 
-          {/* Overlay with scanning UI - positioned absolutely */}
           <View style={tw`absolute inset-0 justify-between`}>
-            {/* Back button */}
             <TouchableOpacity
               onPress={closeCamera}
               style={tw`absolute top-[2rem] left-4 w-10 h-10 rounded-full bg-white justify-center items-center z-10`}
@@ -238,7 +504,6 @@ const Scan = () => {
               <Ionicons name="arrow-back" size={24} color="black" />
             </TouchableOpacity>
 
-            {/* Top message */}
             {scanning && (
               <View style={tw`items-center mt-16`}>
                 <View
@@ -251,31 +516,21 @@ const Scan = () => {
               </View>
             )}
 
-            {/* Scanning frame with corner lines - only show during scanning */}
             {scanning && (
               <View style={tw`flex-1 justify-center items-center`}>
                 <View style={tw`w-64 h-80 justify-center items-center`}>
-                  {/* Top left corner */}
                   <View style={tw`absolute top-0 left-0`}>
                     <View style={[styles.corner, styles.topLeft]} />
                   </View>
-
-                  {/* Top right corner */}
                   <View style={tw`absolute top-0 right-0`}>
                     <View style={[styles.corner, styles.topRight]} />
                   </View>
-
-                  {/* Bottom left corner */}
                   <View style={tw`absolute bottom-0 left-0`}>
                     <View style={[styles.corner, styles.bottomLeft]} />
                   </View>
-
-                  {/* Bottom right corner */}
                   <View style={tw`absolute bottom-0 right-0`}>
                     <View style={[styles.corner, styles.bottomRight]} />
                   </View>
-
-                  {/* Animated scan line with shadow effect */}
                   <Animated.View
                     style={[
                       tw`absolute w-full h-2 bg-white rounded-full`,
@@ -300,7 +555,6 @@ const Scan = () => {
               </View>
             )}
 
-            {/* Bottom tip text - show during scanning */}
             {scanning && (
               <View style={tw`items-center mb-12`}>
                 <View style={tw`px-6 py-3`}>
@@ -315,7 +569,6 @@ const Scan = () => {
               </View>
             )}
 
-            {/* Processing indicator */}
             {processing && (
               <View
                 style={tw`absolute inset-0 justify-center items-center bg-black bg-opacity-70`}
@@ -339,52 +592,195 @@ const Scan = () => {
         >
           <DrawerHeader />
 
-          {/* Bottom buttons container */}
           <View
             style={tw`absolute bottom-20 left-0 right-0 flex-row justify-center items-center gap-6`}
           >
-            {/* Voice Control Button */}
-            <TouchableOpacity
-              style={tw`w-16 h-16 rounded-full bg-black bg-opacity-30 items-center justify-center border border-white border-opacity-50`}
-              onPress={() => setActiveButton("voice")}
-            >
-              <VoiceChatIcon />
-            </TouchableOpacity>
-
-            {/* Facial Scan Button (Active Focus) */}
-            <TouchableOpacity
-              style={[
-                tw`w-20 h-20 rounded-full items-center justify-center border-2`,
-                activeButton === "face"
-                  ? tw`bg-white bg-opacity-20 border-white`
-                  : tw`bg-black bg-opacity-30 border-white border-opacity-50`,
-              ]}
-              onPress={handleFacialScanPress}
-            >
-              <FacialVerificationIcon />
-            </TouchableOpacity>
-
-            {/* Chat Button */}
-            <TouchableOpacity
-              style={tw`w-16 h-16 rounded-full bg-black bg-opacity-30 items-center justify-center border border-white border-opacity-50`}
-              onPress={() => setActiveButton("chat")}
-            >
-              <ChatIcon />
-            </TouchableOpacity>
+            {activeButton === "voice" && !hasDetectedSpeech ? (
+              <View style={tw`flex-row items-center justify-center`}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setActiveButton(null);
+                    stopRecording();
+                  }}
+                  style={tw`w-12 h-12 rounded-full bg-red-500 items-center justify-center mr-4`}
+                >
+                  <Ionicons name="close" size={24} color="white" />
+                </TouchableOpacity>
+                <Animated.View
+                  style={[
+                    tw`w-24 h-24 rounded-full bg-white bg-opacity-20 items-center justify-center border-2 border-white`,
+                    { transform: [{ scale: orbScale }] },
+                  ]}
+                >
+                  <VoiceChatIcon />
+                  <Animated.View
+                    style={[
+                      tw`absolute -inset-4 rounded-full border-2 border-white`,
+                      {
+                        opacity: voiceWaveAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.5, 0],
+                        }),
+                        transform: [
+                          {
+                            scale: voiceWaveAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [1, 2],
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                  />
+                  {recording && (
+                    <Text classN={`text-white text-xs mt-2`}>Listening...</Text>
+                  )}
+                </Animated.View>
+              </View>
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={tw`w-16 h-16 rounded-full bg-black bg-opacity-30 items-center justify-center border border-white border-opacity-50`}
+                  onPress={handleVoicePress}
+                >
+                  <VoiceChatIcon />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={tw`w-20 h-20 rounded-full bg-black bg-opacity-30 items-center justify-center border-2 border-white border-opacity-50`}
+                  onPress={handleFacialScanPress}
+                >
+                  <FacialVerificationIcon />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={tw`w-16 h-16 rounded-full bg-black bg-opacity-30 items-center justify-center border border-white border-opacity-50`}
+                  onPress={() => setActiveButton("chat")}
+                >
+                  <ChatIcon />
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </ImageBackground>
       )}
+
+      <Modal
+        visible={showBottomSheet}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={closeBottomSheet}
+      >
+        <View style={tw`flex-1 justify-end bg-black bg-opacity-50`}>
+          <Animated.View
+            style={[
+              tw`bg-white rounded-t-3xl overflow-hidden`,
+              {
+                height: bottomSheetHeight.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ["0%", "85%"],
+                }),
+              },
+            ]}
+          >
+            <View
+              style={tw`flex-row justify-between items-center p-4 border-b border-gray-200`}
+            >
+              <TouchableOpacity onPress={closeBottomSheet}>
+                <Ionicons name="close" size={24} color="black" />
+              </TouchableOpacity>
+              <Text classN={`text-lg font-semibold`}>Talk to Mira</Text>
+              <View style={tw`w-6`} />
+            </View>
+
+            <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              style={tw`flex-1`}
+            >
+              <ScrollView
+                style={tw`flex-1 p-4`}
+                contentContainerStyle={tw`flex-grow`}
+              >
+                {chatMessages.length === 0 ? (
+                  <View style={tw`items-center mt-8`}>
+                    <Animated.View
+                      style={[
+                        tw`w-20 h-20 rounded-full bg-blue-100 items-center justify-center mb-4`,
+                        { transform: [{ scale: isSpeaking ? orbScale : 1 }] },
+                      ]}
+                    >
+                      <Ionicons name="mic" size={32} color="#3B82F6" />
+                    </Animated.View>
+                    <Text classN={`text-lg font-semibold mb-2`}>
+                      Hi, I'm Mira
+                    </Text>
+                    <Text classN={`text-gray-500 text-center`}>
+                      What would you like to ask me today?
+                    </Text>
+                  </View>
+                ) : (
+                  <>
+                    {chatMessages.map((message: Message) => (
+                      <View
+                        key={message.id}
+                        style={[
+                          tw`p-3 rounded-2xl mb-3 max-w-3/4`,
+                          message.sender === "user"
+                            ? tw`bg-blue-500 self-end`
+                            : tw`bg-gray-200 self-start`,
+                        ]}
+                      >
+                        <Text
+                          classN={
+                            message.sender === "user"
+                              ? "text-white"
+                              : "text-black"
+                          }
+                        >
+                          {message.text}
+                        </Text>
+                      </View>
+                    ))}
+                  </>
+                )}
+
+                {recording && transcribedText && (
+                  <View
+                    style={tw`bg-gray-100 p-3 rounded-2xl self-end mb-3 max-w-3/4`}
+                  >
+                    <Text>{transcribedText}</Text>
+                  </View>
+                )}
+                {isProcessing && (
+                  <View
+                    style={tw`bg-gray-100 p-3 rounded-2xl self-start mb-3 max-w-3/4`}
+                  >
+                    <Text>Thinking...</Text>
+                  </View>
+                )}
+              </ScrollView>
+
+              <View style={tw`p-4 border-t border-gray-200`}>
+                <View style={tw`flex-row items-center`}>
+                  <TextInput
+                    style={tw`flex-1 border border-gray-300 rounded-full px-4 py-2 mr-2`}
+                    placeholder="Type your message..."
+                  />
+                  <TouchableOpacity
+                    style={tw`bg-blue-500 w-10 h-10 rounded-full items-center justify-center`}
+                  >
+                    <Ionicons name="send" size={20} color="white" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </KeyboardAvoidingView>
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  corner: {
-    width: 30,
-    height: 30,
-    borderColor: "white",
-    position: "absolute",
-  },
+  corner: { width: 30, height: 30, borderColor: "white", position: "absolute" },
   topLeft: {
     borderTopWidth: 4,
     borderLeftWidth: 4,

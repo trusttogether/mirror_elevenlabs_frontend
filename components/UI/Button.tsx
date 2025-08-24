@@ -11,7 +11,7 @@ interface ButtonProps {
   icon?: React.ReactNode;
   textStyle?: string;
   btnStyle?: string;
-  title: string;
+  title?: string;
   onPress?: () => void;
   disabled?: boolean;
   isLoading?: boolean;
@@ -24,7 +24,7 @@ const Button = ({
   fontWeight = "normal",
   icon,
   textStyle = "text-white",
-  btnStyle = "bg-[#32D34B]",
+  btnStyle = "bg-[#222222] rounded-full",
   title,
   onPress,
   disabled,

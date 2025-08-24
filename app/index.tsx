@@ -67,7 +67,7 @@ const Index = () => {
 
               <View style={tw`justify-between gap-2`}>
                 <TouchableOpacity
-                  onPress={() => router.push("/scan")}
+                  onPress={() => router.push("/signup")}
                   style={tw`bg-black py-4 px-6 rounded-full`}
                 >
                   <Text
@@ -80,6 +80,7 @@ const Index = () => {
                 </TouchableOpacity>
 
                 <TouchableOpacity
+                  onPress={() => router.push("/signin")}
                   style={tw`py-4 px-6 rounded-full border border-white mt-2`}
                 >
                   <Text
