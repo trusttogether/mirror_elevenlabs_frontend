@@ -5,6 +5,7 @@ import Text from "../../components/UI/Text";
 import OtpTextInput from "react-native-otp-textinput";
 import Button from "../../components/UI/Button";
 import tw from "twrnc";
+import { router } from "expo-router";
 
 const Otpverification = () => {
   const [otp, setOtp] = useState("");
@@ -31,7 +32,11 @@ const Otpverification = () => {
             inputCount={6}
           />
         </View>
-        <Button onPress={() => console.log(otp)} text={true} title="Submit" />
+        <Button
+          onPress={() => router.push("/manual")}
+          text={true}
+          title="Submit"
+        />
       </View>
     </View>
   );

@@ -11,6 +11,7 @@ const OnboardingLayout = () => {
       <Stack.Screen name="manual" options={{ headerShown: false }} />
       <Stack.Screen name="otpverification" options={{ headerShown: false }} />
       <Stack.Screen name="createnewpw" options={{ headerShown: false }} />
+      <Stack.Screen name="success" options={{ headerShown: false }} />
     </Stack>
   );
 };
