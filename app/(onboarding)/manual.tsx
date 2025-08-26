@@ -97,7 +97,7 @@ const Manual = () => {
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={tw`pt-10 relative pb-20 min-h-full`}
+      contentContainerStyle={tw`relative pb-2 min-h-full`}
     >
       <Image
         source={require("../../assets/images/Rectangle2.png")}
@@ -112,11 +112,11 @@ const Manual = () => {
       />
       <Image
         source={require("../../assets/images/orb.png")}
-        style={tw`w-[140px] h-[147.27px] mt-10 mx-auto`}
+        style={tw`w-[140px] h-[147.27px] mt-5 mx-auto`}
         resizeMode="contain"
       />
 
-      <Text type="title" fontSize={34} classN="mx-auto text-center mt-[3rem]">
+      <Text type="title" fontSize={34} classN="mx-auto text-center mt-[1rem]">
         How Mirrora Works
       </Text>
 
@@ -148,7 +148,7 @@ const Manual = () => {
 
       <View style={tw`mt-12 px-4`}>
         <Button
-          onPress={() => router.push("/")}
+          onPress={() => router.push("/auth-steps")}
           text={true}
           title="Start My Assignment"
         />
