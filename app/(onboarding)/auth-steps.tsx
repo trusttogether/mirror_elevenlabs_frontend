@@ -14,6 +14,7 @@ import Usage from "../../components/authSteps/Usage";
 import tw from "twrnc";
 import { ArrowLeft, ChevronRight } from "lucide-react-native";
 import SkinReactions from "../../components/authSteps/SkinReactions";
+import { router } from "expo-router";
 
 const AuthSteps = () => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -37,6 +38,8 @@ const AuthSteps = () => {
   const handleNext = () => {
     if (currentStep < totalSteps - 1) {
       setCurrentStep(currentStep + 1);
+    } else {
+      router.push("/scan");
     }
   };
 
@@ -101,7 +104,7 @@ const AuthSteps = () => {
           style={tw`bg-black py-4 rounded-full items-center flex-row justify-center`}
         >
           <Text classN={`text-white text-base font-semibold mr-2`}>
-            {currentStep === totalSteps - 1 ? "Get Started" : "Continue"}
+            {currentStep === totalSteps - 1 ? "Done" : "Continue"}
           </Text>
           {/* {currentStep < totalSteps - 1 && (
             <ChevronRight size={20} color="white" />
