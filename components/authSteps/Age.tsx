@@ -25,7 +25,7 @@ const Age = () => {
   return (
     <View style={tw`flex-1`}>
       <Text type="title" fontSize={24}>
-        How old are you?
+        How often do you eat the following?
       </Text>
 
       <View style={tw`mt-6`}>

@@ -1,4 +1,4 @@
-import { ScrollView, TouchableOpacity, View } from "react-native";
+import { Image, ScrollView, TouchableOpacity, View } from "react-native";
 import React, { useState } from "react";
 import Text from "../../components/UI/Text";
 import Gender from "../../components/authSteps/Gender";
@@ -57,8 +57,14 @@ const AuthSteps = () => {
   // Progress bar calculation
   const progress = (currentStep / (totalSteps - 1)) * 100;
   return (
-    <View style={tw`flex-1 bg-[#EDEEF2]`}>
+    <View style={tw`flex-1 bg-[#EDEEF2] relative`}>
+      <Image
+        source={require("../../assets/images/Rectangle3.png")}
+        style={tw`absolute top-[-1rem] left-[-1rem]`}
+      />
+
       {/* Header with back button and progress */}
+
       <View style={tw`p-5 pt-12 bg-transparent`}>
         <View style={tw`flex-row items-center justify-between mb-5`}>
           <TouchableOpacity onPress={handleBack} style={tw`p-2`}>
