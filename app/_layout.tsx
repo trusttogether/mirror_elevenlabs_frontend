@@ -1,11 +1,17 @@
+// app/_layout.tsx
 import "react-native-gesture-handler";
 import { View, Text } from "react-native";
-import React, { useCallback, useEffect } from "react";
-import { SplashScreen, Stack } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
+import { SplashScreen, Stack, useRouter, useSegments } from "expo-router";
 import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ToastProvider } from "../components/UI/ToastManager";
+import { useSigninStore } from "../stores/useSigninStore";
 
 SplashScreen.preventAutoHideAsync();
+
+const queryClient = new QueryClient();
 
 const RootLayout = () => {
   const [fontsLoaded, fontError] = useFonts({
@@ -16,19 +22,37 @@ const RootLayout = () => {
     "title-medium": require("../assets/fonts/titlefonts/CormorantGaramond-Medium.ttf"),
     body: require("../assets/fonts/textfonts/ProductSansInfanity.ttf"),
   });
+
+  const [isAppReady, setIsAppReady] = useState(false);
+  const router = useRouter();
+  const segments = useSegments();
+  const { token, user } = useSigninStore();
+
+  const isAuthenticated = !!user && !!token;
+
   useEffect(() => {
     if (fontError) {
       console.log("Font loading error:", fontError);
     }
   }, [fontError]);
 
+  // Check authentication status and redirect accordingly
+  useEffect(() => {
+    if (isAppReady) {
+      const inAuthGroup = segments[0] === "(auth)";
+
+      if (isAuthenticated && token && user) {
+        router.replace("/scan");
+      }
+    }
+  }, [isAuthenticated, segments, isAppReady]);
+
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded || fontError) {
       // Hide the splash screen after fonts are loaded or if there's an error
       await SplashScreen.hideAsync();
-      console.log(
-        "Fonts loaded successfully or error occurred, splash screen hidden."
-      );
+      setIsAppReady(true);
+      console.log("App is ready, splash screen hidden.");
     }
   }, [fontsLoaded, fontError]);
 
@@ -42,13 +66,21 @@ const RootLayout = () => {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
-        <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
-      </Stack>
-    </GestureHandlerRootView>
+    <QueryClientProvider client={queryClient}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <ToastProvider>
+          <Stack>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="(onboarding)"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          </Stack>
+        </ToastProvider>
+      </GestureHandlerRootView>
+    </QueryClientProvider>
   );
 };
 

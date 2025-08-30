@@ -1,4 +1,9 @@
-import { View, TextInput, TouchableOpacity } from "react-native";
+import {
+  View,
+  TextInput,
+  TouchableOpacity,
+  KeyboardTypeOptions,
+} from "react-native";
 import React, { useState } from "react";
 import tw from "twrnc";
 import Feather from "@expo/vector-icons/Feather";
@@ -18,6 +23,9 @@ interface FormProps {
   labelStyle?: string;
   inputStyle?: string;
   error?: string;
+  keyboardType?: KeyboardTypeOptions; // Add this
+  autoCapitalize?: "none" | "sentences" | "words" | "characters"; // Add this
+  editable?: boolean; // Add this
 }
 
 const Form = ({
@@ -33,6 +41,10 @@ const Form = ({
   label,
   formStyle = "h-[3rem]",
   onChangeText,
+  keyboardType = "default", // Default value
+  autoCapitalize = "sentences", // Default value
+  editable = true, // Default value
+  ...props
 }: FormProps) => {
   const [secureTextEntry, setSecureTextEntry] = useState(type === "password");
 
@@ -66,6 +78,10 @@ const Form = ({
           value={value}
           onChangeText={onChangeText}
           secureTextEntry={type === "password" ? secureTextEntry : false}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+          editable={editable}
+          {...props}
         />
         {type === "password" && (
           <TouchableOpacity style={tw``} onPress={toggleSecureEntry}>
