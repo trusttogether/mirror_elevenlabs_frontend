@@ -7,6 +7,15 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
+}
+
+export interface OtpVerificationData {
+  identifier: string; // email or phone number
+  type: "email" | "phone";
+  expiresAt?: number; // timestamp for OTP expiration
+  purpose?: "signup" | "login" | "password_reset"; // purpose of OTP
 }
 
 export interface AuthState {
@@ -14,6 +23,8 @@ export interface AuthState {
   token: string | null;
   isLoading: boolean;
   error: string | null;
+  otpVerificationData: OtpVerificationData | null; // Add OTP data
+  setOtpVerificationData: (data: OtpVerificationData | null) => void; // Add OTP action
 
   // Actions
   setUser: (user: User | null) => void;
@@ -22,33 +33,63 @@ export interface AuthState {
   setError: (error: string | null) => void;
   clearAuth: () => void;
   logout: () => void; // Add logout method
+  clearOtpData: () => void; // Add clear OTP action
+  markEmailVerified: () => void; // Add verification status
+  markPhoneVerified: () => void;
 }
 
 // Create the store instance
 export const useSigninStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       token: null,
       isLoading: false,
       error: null,
+      otpVerificationData: null, // Initialize OTP datas
 
       setUser: (user) => set({ user }),
       setToken: (token) => set({ token }),
       setLoading: (loading) => set({ isLoading: loading }),
       setError: (error) => set({ error }),
+      setOtpVerificationData: (
+        otpVerificationData: OtpVerificationData | null
+      ) => set({ otpVerificationData }),
+
       clearAuth: () =>
         set({
           user: null,
           token: null,
           error: null,
+          otpVerificationData: null, // Clear OTP data on auth clear
         }),
       logout: () => {
         set({
           user: null,
           token: null,
           error: null,
+          otpVerificationData: null, // Clear OTP data on logout
         });
+      },
+
+      markEmailVerified: () => {
+        const { user } = get();
+        if (user) {
+          set({
+            user: { ...user, emailVerified: true },
+          });
+        }
+      },
+
+      clearOtpData: () => set({ otpVerificationData: null }),
+
+      markPhoneVerified: () => {
+        const { user } = get();
+        if (user) {
+          set({
+            user: { ...user, phoneVerified: true },
+          });
+        }
       },
     }),
     {
@@ -66,15 +107,29 @@ export const getAuthToken = (): string | null => {
   return authStore.getState().token;
 };
 
+// Helper function to get OTP verification data
+export const getOtpVerificationData = (): OtpVerificationData | null => {
+  return authStore.getState().otpVerificationData;
+};
+
+// Helper function to check if OTP is expired
+export const isOtpExpired = (): boolean => {
+  const { otpVerificationData } = authStore.getState();
+  if (!otpVerificationData?.expiresAt) return true;
+  return Date.now() > otpVerificationData.expiresAt;
+};
+
+// Helper function to get OTP time remaining
+export const getOtpTimeRemaining = (): number => {
+  const { otpVerificationData } = authStore.getState();
+  if (!otpVerificationData?.expiresAt) return 0;
+  return Math.max(0, otpVerificationData.expiresAt - Date.now());
+};
+
 // Helper function to check if user is authenticated
 export const isAuthenticated = (): boolean => {
   const { token, user } = useSigninStore.getState();
   return !!token && !!user;
-};
-
-// Helper function to logout (for use in axios)
-export const logoutUser = (): void => {
-  authStore.getState().logout();
 };
 
 // Helper hooks for React components
@@ -95,4 +150,12 @@ export const useAuthActions = () =>
     setError: state.setError,
     clearAuth: state.clearAuth,
     logout: state.logout,
+  }));
+
+// Specific hook for OTP data
+export const useOtpVerification = () =>
+  useSigninStore((state) => ({
+    otpVerificationData: state.otpVerificationData,
+    setOtpVerificationData: state.setOtpVerificationData,
+    clearOtpData: state.clearOtpData,
   }));

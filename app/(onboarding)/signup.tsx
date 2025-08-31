@@ -46,9 +46,8 @@ const Signup = () => {
   const { showToast } = useToast();
 
   // Use store directly - no separate action hooks needed
-  const { setUser, setToken, setLoading, setError } = useSignupStore();
+  const { setUser, setLoading, setError } = useSignupStore();
   const isLoading = useSignupStore((state) => state.isLoading);
-  const token = useSignupStore((state) => state.token);
 
   // Direct useMutation for signup
   const { mutate: signup } = useMutation({
@@ -69,7 +68,6 @@ const Signup = () => {
     onSuccess: (data) => {
       // Save both user and token to store directly
       setUser(data.user);
-      setToken(data.token);
       setLoading(false);
 
       console.log("Token saved:", data.token);
@@ -140,20 +138,8 @@ const Signup = () => {
     });
   };
 
-  const handleImmediateVerification = () => {
-    if (token) {
-      router.push("/otpverification");
-    } else {
-      showToast({
-        type: "warning",
-        message: "Please complete signup first",
-        description: "Your account needs to be created before verification",
-      });
-    }
-  };
-
   return (
-    <View>
+    <View style={tw`flex-1`}>
       <AuthHeader
         className="h-[10rem]"
         title="Create an account with Mirrora"
@@ -161,7 +147,7 @@ const Signup = () => {
 
       <KeyboardAwareScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={tw`px-4 pb-4 mt-[3rem]`}
+        contentContainerStyle={tw`px-4 pb-14 mt-[1rem]`}
       >
         <Form
           containerStyle="mb-6"

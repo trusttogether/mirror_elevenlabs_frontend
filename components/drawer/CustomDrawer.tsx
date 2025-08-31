@@ -16,11 +16,18 @@ import {
   ScanIcon,
   SettingsIcon,
 } from "../../assets/icons/drawerIcons";
+import { useToast } from "../UI/ToastManager";
+import { useSigninStore } from "../../stores/useSigninStore";
 
 const CustomDrawer = ({ ...props }) => {
   const navigation = useNavigation();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const pathname = usePathname(); // Get current route path
+
+  const { showToast } = useToast(); // If you have toast notifications
+  const { logout, user, clearAuth } = useSigninStore(); // Get logout function and user from store
+
+  console.log(user, "Current User");
 
   // Hardcoded user data
   const userData = {
@@ -61,20 +68,35 @@ const CustomDrawer = ({ ...props }) => {
 
   const handleLogout = async () => {
     try {
+      // Close drawer first
       props.navigation.closeDrawer();
-      setShowLogoutModal(false);
-      router.replace("/welcome");
-      console.log("Logged out successfully (demo)");
+
+      // Call the logout function from your store
+      logout();
+
+      // Clear any additional auth data if needed
+      clearAuth();
+
+      // Show success message (optional)
+      showToast?.({
+        type: "success",
+        message: "Logged out successfully",
+        description: "You have been logged out",
+      });
+
+      router.replace("/signin");
+
+      console.log("Logged out successfully");
     } catch (error) {
       console.log("Logout failed:", error);
+      showToast?.({
+        type: "error",
+        message: "Logout failed",
+        description: "Please try again",
+      });
+    } finally {
+      setShowLogoutModal(false);
     }
-  };
-
-  const handleLogoutClick = () => {
-    props.navigation.closeDrawer();
-    setTimeout(() => {
-      setShowLogoutModal(true);
-    }, 200);
   };
 
   // Check if a route is active
@@ -99,7 +121,7 @@ const CustomDrawer = ({ ...props }) => {
 
             <View>
               <Text type="body" fontSize={17}>
-                {userData?.data?.firstName}
+                {user?.name || "User"}
               </Text>
 
               <View style={tw`flex-row items-center gap-2`}>
@@ -152,10 +174,10 @@ const CustomDrawer = ({ ...props }) => {
         </View>
 
         {/* logout button */}
-        <View style={tw`mt-[12rem] px-5`}>
+        <View style={tw`mt-[7rem] px-5`}>
           <TouchableOpacity
             style={tw`flex-row items-center gap-3 p-3 rounded-xl`}
-            onPress={handleLogoutClick}
+            onPress={handleLogout}
           >
             <View
               style={tw`h-[3rem] w-[3rem] items-center justify-center rounded-[12px] bg-[#FDFDFD]`}

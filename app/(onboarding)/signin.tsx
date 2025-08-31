@@ -25,8 +25,8 @@ interface LoginResponse {
 }
 
 const Signin = () => {
-  const [email, setEmail] = useState("adamokennie@gmail.com");
-  const [password, setPassword] = useState("1234abc$");
+  const [email, setEmail] = useState("davidfayanju01@gmail.com");
+  const [password, setPassword] = useState("adebayooo1@");
   const { showToast } = useToast();
   const { setUser, setToken } = useSigninStore();
 
