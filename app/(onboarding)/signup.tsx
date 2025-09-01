@@ -13,7 +13,7 @@ import Modal from "../../components/UI/Modal";
 import Feather from "@expo/vector-icons/Feather";
 import { useMutation } from "@tanstack/react-query";
 import api from "../../lib/axios";
-import { useSignupStore } from "../../stores/useSignupStore"; // Import store directly
+import { useSignupStore } from "../../stores/useSignupStore";
 import { useToast } from "../../components/UI/ToastManager";
 
 interface SignupResponse {
@@ -36,18 +36,60 @@ interface SignupCredentials {
 
 const Signup = () => {
   const [formData, setFormData] = useState({
-    fullName: "Fayanju Adebayo",
-    email: "davidfayanju@gmail.com",
-    phoneNumber: "+1234567890",
-    password: "adebayooo1@",
+    fullName: "",
+    email: "",
+    phoneNumber: "",
+    password: "",
   });
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const { showToast } = useToast();
+  const { setUser, setLoading, setError, isLoading } = useSignupStore();
 
-  // Use store directly - no separate action hooks needed
-  const { setUser, setLoading, setError } = useSignupStore();
-  const isLoading = useSignupStore((state) => state.isLoading);
+  // Function to format Nigerian phone number as user types
+  const formatNigerianPhoneNumber = (value: string) => {
+    // Remove all non-digit characters
+    const cleaned = value.replace(/\D/g, "");
+
+    // Check if it starts with 0 (local format) or 234 (international format)
+    const isInternationalFormat = cleaned.startsWith("234");
+
+    // Limit to appropriate length
+    let limited;
+    if (isInternationalFormat) {
+      limited = cleaned.slice(0, 13); // 2348012345678 (13 digits)
+    } else {
+      limited = cleaned.slice(0, 11); // 08012345678 (11 digits)
+    }
+
+    // Apply formatting based on format type
+    if (isInternationalFormat) {
+      if (limited.length <= 3) {
+        return limited;
+      } else if (limited.length <= 7) {
+        return `${limited.slice(0, 3)} ${limited.slice(3)}`;
+      } else {
+        return `${limited.slice(0, 3)} ${limited.slice(3, 7)} ${limited.slice(
+          7
+        )}`;
+      }
+    } else {
+      if (limited.length <= 4) {
+        return limited;
+      } else if (limited.length <= 7) {
+        return `${limited.slice(0, 4)} ${limited.slice(4)}`;
+      } else {
+        return `${limited.slice(0, 4)} ${limited.slice(4, 7)} ${limited.slice(
+          7
+        )}`;
+      }
+    }
+  };
+
+  const handlePhoneNumberChange = (value: string) => {
+    const formatted = formatNigerianPhoneNumber(value);
+    setFormData((prev) => ({ ...prev, phoneNumber: formatted }));
+  };
 
   // Direct useMutation for signup
   const { mutate: signup } = useMutation({
@@ -56,7 +98,13 @@ const Signup = () => {
       setError(null);
       console.log(credentials, "signup credentials");
       try {
-        const response = await api.post("/auth/register", credentials);
+        // Clean phone number before sending to server
+        const cleanedCredentials = {
+          ...credentials,
+          phoneNumber: credentials.phoneNumber.replace(/\D/g, ""),
+        };
+
+        const response = await api.post("/auth/register", cleanedCredentials);
         console.log("Signup response:", response.data);
         return response.data;
       } catch (error: any) {
@@ -66,18 +114,9 @@ const Signup = () => {
       }
     },
     onSuccess: (data) => {
-      // Save both user and token to store directly
       setUser(data.user);
       setLoading(false);
-
       console.log("Token saved:", data.token);
-
-      showToast({
-        type: "success",
-        message: "Signup successful!",
-        description: "Your account has been created successfully",
-      });
-
       setIsModalVisible(true);
     },
     onError: (error: Error) => {
@@ -100,6 +139,7 @@ const Signup = () => {
 
   const handleSignup = () => {
     // Basic validation
+
     if (!formData.fullName || !formData.email || !formData.password) {
       showToast({
         type: "error",
@@ -126,6 +166,13 @@ const Signup = () => {
       });
       return;
     }
+
+    // Check if phone number has valid Nigerian format
+    const cleanedPhone = formData.phoneNumber.replace(/\D/g, "");
+    const isValidLocalFormat = /^0[7-9][0-1]\d{8}$/.test(cleanedPhone); // e.g., 0818617226
+    const isValidInternationalFormat = /^234[7-9][0-1]\d{8}$/.test(
+      cleanedPhone
+    );
 
     signup(formData);
   };
@@ -161,9 +208,9 @@ const Signup = () => {
         <Form
           containerStyle="mb-6"
           label="Phone Number"
-          placeholder="+1234567890"
+          placeholder="0818 617 226"
           value={formData.phoneNumber}
-          onChangeText={(value) => handleInputChange("phoneNumber", value)}
+          onChangeText={handlePhoneNumberChange}
           keyboardType="phone-pad"
           editable={!isLoading}
         />
