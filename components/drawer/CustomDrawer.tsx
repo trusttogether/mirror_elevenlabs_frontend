@@ -1,4 +1,4 @@
-import { TouchableOpacity, View, Modal } from "react-native";
+import { TouchableOpacity, View, Modal, Image } from "react-native";
 import React, { useState } from "react";
 import Text from "../UI/Text";
 import { DrawerContentScrollView } from "@react-navigation/drawer";
@@ -109,8 +109,17 @@ const CustomDrawer = ({ ...props }) => {
       <DrawerContentScrollView
         showsVerticalScrollIndicator={false}
         {...props}
-        contentContainerStyle={tw`px-0 bg-white min-h-full`}
+        contentContainerStyle={tw`px-0 relative bg-white min-h-full`}
       >
+        <Image
+          style={tw`absolute left-[-2rem]`}
+          source={require("../../assets/images/drawerRectangle2.png")}
+        />
+
+        <Image
+          style={tw`absolute bottom-[-1rem] right-[-2rem]`}
+          source={require("../../assets/images/draweRectangle.png")}
+        />
         <View
           style={tw`min-h-[10rem] items-start justify-center border-b-[1px] border-gray-200 px-4 w-full`}
         >

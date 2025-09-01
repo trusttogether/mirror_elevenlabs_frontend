@@ -89,7 +89,7 @@ const SubscriptionPlan = () => {
               </Text>
             </View>
 
-            <Text type="title" fontSize={26}>
+            <Text fontWeight="bold" type="title" fontSize={26}>
               Weekly
             </Text>
 
@@ -115,7 +115,7 @@ const SubscriptionPlan = () => {
                 : ""
             }`}
           >
-            <Text type="title" fontSize={26}>
+            <Text fontWeight="bold" type="title" fontSize={26}>
               Monthly
             </Text>
 
@@ -137,6 +137,7 @@ const SubscriptionPlan = () => {
 
       <View style={tw`mt-[2rem]`}>
         <Button
+          onPress={() => router.push("/scan")}
           text={true}
           title={`Start ${active === "weekly" ? "3" : "7"} days free trial`}
         />

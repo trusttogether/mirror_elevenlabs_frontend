@@ -4,8 +4,15 @@ import { useNavigation } from "@react-navigation/native";
 import { DrawerActions } from "@react-navigation/native";
 import tw from "twrnc";
 import { BurgerIcon, NotificationsIcon } from "../../assets/icons/drawerIcons";
+import Text from "../UI/Text";
 
-const DrawerHeader = () => {
+interface DrawerHeaderprops {
+  title?: string;
+  button?: React.ReactNode;
+  action?: () => void;
+}
+
+const DrawerHeader = ({ title, button, action }: DrawerHeaderprops) => {
   const navigation = useNavigation();
 
   const toggleDrawer = () => {
@@ -30,12 +37,23 @@ const DrawerHeader = () => {
       </TouchableOpacity>
 
       {/* Notifications Button */}
-      <TouchableOpacity
-        onPress={handleNotifications}
-        style={tw`bg-white rounded-full w-12 h-12 items-center justify-center shadow-md`}
-      >
-        <NotificationsIcon />
-      </TouchableOpacity>
+
+      {title && (
+        <Text type="title" fontSize={20}>
+          {title}
+        </Text>
+      )}
+
+      {button ? (
+        <TouchableOpacity onPress={action}>{button}</TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          onPress={handleNotifications}
+          style={tw`bg-white rounded-full w-12 h-12 items-center justify-center shadow-md`}
+        >
+          <NotificationsIcon />
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
