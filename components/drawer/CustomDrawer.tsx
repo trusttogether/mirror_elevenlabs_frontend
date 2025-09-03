@@ -47,7 +47,7 @@ const CustomDrawer = ({ ...props }) => {
     {
       name: "My Journal",
       icon: <MyJournalIcon />,
-      route: "/auth-steps",
+      route: "/my-journal",
     },
     {
       name: "My Challenges",
