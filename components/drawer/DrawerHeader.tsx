@@ -26,7 +26,7 @@ const DrawerHeader = ({ title, button, action }: DrawerHeaderprops) => {
 
   return (
     <View
-      style={tw`flex-row justify-between items-center px-5 py-4 bg-transparent`}
+      style={tw`flex-row justify-between items-center px-4 py-4 bg-transparent`}
     >
       {/* Hamburger Menu Button */}
       <TouchableOpacity
@@ -45,7 +45,9 @@ const DrawerHeader = ({ title, button, action }: DrawerHeaderprops) => {
       )}
 
       {button ? (
-        <TouchableOpacity onPress={action}>{button}</TouchableOpacity>
+        <TouchableOpacity style={tw``} onPress={action}>
+          {button}
+        </TouchableOpacity>
       ) : (
         <TouchableOpacity
           onPress={handleNotifications}

@@ -38,7 +38,6 @@ export interface AuthState {
   markPhoneVerified: () => void;
 }
 
-// Create the store instance
 export const useSigninStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -107,25 +106,6 @@ export const getAuthToken = (): string | null => {
   return authStore.getState().token;
 };
 
-// Helper function to get OTP verification data
-export const getOtpVerificationData = (): OtpVerificationData | null => {
-  return authStore.getState().otpVerificationData;
-};
-
-// Helper function to check if OTP is expired
-export const isOtpExpired = (): boolean => {
-  const { otpVerificationData } = authStore.getState();
-  if (!otpVerificationData?.expiresAt) return true;
-  return Date.now() > otpVerificationData.expiresAt;
-};
-
-// Helper function to get OTP time remaining
-export const getOtpTimeRemaining = (): number => {
-  const { otpVerificationData } = authStore.getState();
-  if (!otpVerificationData?.expiresAt) return 0;
-  return Math.max(0, otpVerificationData.expiresAt - Date.now());
-};
-
 // Helper function to check if user is authenticated
 export const isAuthenticated = (): boolean => {
   const { token, user } = useSigninStore.getState();
@@ -150,12 +130,4 @@ export const useAuthActions = () =>
     setError: state.setError,
     clearAuth: state.clearAuth,
     logout: state.logout,
-  }));
-
-// Specific hook for OTP data
-export const useOtpVerification = () =>
-  useSigninStore((state) => ({
-    otpVerificationData: state.otpVerificationData,
-    setOtpVerificationData: state.setOtpVerificationData,
-    clearOtpData: state.clearOtpData,
   }));

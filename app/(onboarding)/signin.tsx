@@ -69,7 +69,7 @@ const Signin = () => {
         description: `Welcome back, ${data.fullName}`, // Use fullName here
       });
 
-      router.replace("/scan");
+      router.replace("/auth-steps");
     },
     onError: (error: any) => {
       console.log("Error details:", error);

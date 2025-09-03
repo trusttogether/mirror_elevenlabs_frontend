@@ -40,12 +40,20 @@ const RootLayout = () => {
   useEffect(() => {
     if (isAppReady) {
       const inAuthGroup = segments[0] === "(auth)";
+      const inOnboardingGroup = segments[0] === "(onboarding)";
 
-      if (isAuthenticated && token && user) {
+      // Don't redirect if we're already in auth or onboarding
+      if (inAuthGroup || inOnboardingGroup) return;
+
+      if (!isAuthenticated) {
+        // Redirect to signin if not authenticated
+        router.replace("/signin");
+      } else if (segments.length === 0 || segments[0] === "(drawer)") {
+        // Only redirect to scan if we're at the root or drawer group
         router.replace("/scan");
       }
     }
-  }, [isAuthenticated, segments, isAppReady]);
+  }, [isAppReady, isAuthenticated]); // Removed segments from dependency
 
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded || fontError) {
@@ -76,7 +84,6 @@ const RootLayout = () => {
               name="(onboarding)"
               options={{ headerShown: false }}
             />
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           </Stack>
         </ToastProvider>
       </GestureHandlerRootView>
