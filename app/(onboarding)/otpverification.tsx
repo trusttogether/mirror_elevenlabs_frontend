@@ -112,6 +112,7 @@ const Otpverification = () => {
               borderRadius: 8,
               width: 45,
               height: 45,
+              padding: 0, // Ensure no padding conflicts
             }}
             inputCount={6}
             autoFocus={true}

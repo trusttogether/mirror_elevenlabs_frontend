@@ -342,7 +342,10 @@ const AuthSteps = () => {
           <TouchableOpacity onPress={handleBack} style={tw`p-2`}>
             <ArrowLeft size={24} color="#333" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleSkip} style={tw`p-2`}>
+          <TouchableOpacity
+            onPress={() => router.push("/scan")}
+            style={tw`p-2`}
+          >
             <Text classN={`text-gray-600`}>Skip for now</Text>
           </TouchableOpacity>
         </View>

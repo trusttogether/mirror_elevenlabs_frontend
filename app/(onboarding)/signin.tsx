@@ -69,7 +69,7 @@ const Signin = () => {
         description: `Welcome back, ${data.fullName}`, // Use fullName here
       });
 
-      router.replace("/auth-steps");
+      router.replace("/scan");
     },
     onError: (error: any) => {
       console.log("Error details:", error);
@@ -124,12 +124,15 @@ const Signin = () => {
   };
 
   return (
-    <View>
+    <View style={tw`flex-1`}>
       <AuthHeader title={`Welcome back`} />
 
       <KeyboardAwareScrollView
-        contentContainerStyle={tw`px-4 pb-4 mt-[3rem]`}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={tw`px-4 pb-4 mt-[3rem] flex-grow`}
         keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        extraScrollHeight={20}
       >
         <Form
           containerStyle="mb-6"
@@ -171,7 +174,7 @@ const Signin = () => {
 
         <Divider />
 
-        <View style={tw`items-center mt-4 justify-center gap-[12px]`}>
+        <View style={tw`items-center mt-4 justify-center gap-[12px] mb-6`}>
           <Button
             icon={<GoogleIcon />}
             btnStyle={`text-white h-[56px] rounded-full w-full border-solid border-[1px] bg-transparent border-[#E2E2E2] ${

@@ -114,9 +114,9 @@ const Signup = () => {
       }
     },
     onSuccess: (data) => {
+      console.log("signedup user success");
       setUser(data.user);
       setLoading(false);
-      console.log("Token saved:", data.token);
       setIsModalVisible(true);
     },
     onError: (error: Error) => {
@@ -195,6 +195,9 @@ const Signup = () => {
       <KeyboardAwareScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={tw`px-4 pb-14 mt-[1rem]`}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        extraScrollHeight={20}
       >
         <Form
           containerStyle="mb-6"
