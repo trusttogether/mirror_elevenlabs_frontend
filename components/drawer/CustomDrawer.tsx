@@ -29,15 +29,6 @@ const CustomDrawer = ({ ...props }) => {
 
   console.log(user, "Current User");
 
-  // Hardcoded user data
-  const userData = {
-    data: {
-      firstName: "Sophia Rose",
-      phone: "+1234567890",
-      verified: true,
-    },
-  };
-
   const hyperLinks = [
     {
       name: "Scans",

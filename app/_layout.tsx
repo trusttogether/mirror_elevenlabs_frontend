@@ -46,10 +46,8 @@ const RootLayout = () => {
       if (inAuthGroup || inOnboardingGroup) return;
 
       if (!isAuthenticated) {
-        // Redirect to index if not authenticated
         router.push("/");
-      } else if (segments[0] === "(drawer)") {
-        // Only redirect to scan if we're at the root or drawer group
+      } else {
         router.replace("/scan");
       }
     }
