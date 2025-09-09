@@ -38,19 +38,19 @@ const ResultHeader = ({ title, button, action }: DrawerHeaderprops) => {
 
       {/* Notifications Button */}
 
-      {title && (
+      {title ? (
         <Text type="title" fontSize={20}>
           {title}
         </Text>
+      ) : (
+        <View
+          style={tw`w-[148px] items-center justify-center h-[42px] rounded-full bg-white`}
+        >
+          <Text fontSize={14} type="body">
+            Scan complete
+          </Text>
+        </View>
       )}
-
-      <View
-        style={tw`w-[148px] items-center justify-center h-[42px] rounded-full bg-white`}
-      >
-        <Text fontSize={14} type="body">
-          Scan complete
-        </Text>
-      </View>
 
       {button ? (
         <TouchableOpacity style={tw``} onPress={action}>
