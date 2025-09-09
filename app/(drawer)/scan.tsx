@@ -18,6 +18,7 @@ import tw from "twrnc";
 import Text from "../../components/UI/Text";
 import {
   ChatIcon,
+  DropletIcon,
   FacialVerificationIcon,
   VoiceChatIcon,
 } from "../../assets/icons/scanIcons";
@@ -27,6 +28,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Audio } from "expo-av";
 import * as Speech from "expo-speech";
 import axios from "axios";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 interface Message {
   id: number;
@@ -57,6 +59,7 @@ const Scan = () => {
   const [scanTip, setScanTip] = useState(
     "Avoid obstructions like glasses or hair"
   );
+  const [showScanResults, setShowScanResults] = useState(false);
   const scanLinePosition = useRef(new Animated.Value(0)).current;
   const cameraRef = useRef(null);
   const tipTimerRef = useRef(null);
@@ -69,6 +72,33 @@ const Scan = () => {
   const recordingInstanceRef = useRef(null);
   const speechSimulationRef = useRef(null);
   const silenceTimerRef = useRef(null);
+
+  // Start scan animation
+  useEffect(() => {
+    if (scanning) {
+      startScanAnimation();
+    }
+  }, [scanning]);
+
+  const startScanAnimation = () => {
+    scanLinePosition.setValue(0);
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(scanLinePosition, {
+          toValue: 1,
+          duration: 2000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scanLinePosition, {
+          toValue: 0,
+          duration: 2000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  };
 
   // Check microphone permission on component mount
   useEffect(() => {
@@ -421,6 +451,7 @@ const Scan = () => {
       setProcessing(false);
       setCameraActive(false);
       setCapturedImage(null);
+      setShowScanResults(true);
 
       // Add success message to chat if bottom sheet is open
       if (showBottomSheet) {
@@ -455,6 +486,10 @@ const Scan = () => {
     setActiveButton(null);
     setHasDetectedSpeech(false);
     stopRecording();
+  };
+
+  const closeScanResults = () => {
+    setShowScanResults(false);
   };
 
   if (!permission) {
@@ -592,74 +627,209 @@ const Scan = () => {
         >
           <DrawerHeader />
 
-          <View
-            style={tw`absolute bottom-20 left-0 right-0 flex-row justify-center items-center gap-6`}
-          >
-            {activeButton === "voice" && !hasDetectedSpeech ? (
-              <View style={tw`flex-row items-center justify-center`}>
-                <TouchableOpacity
-                  onPress={() => {
-                    setActiveButton(null);
-                    stopRecording();
-                  }}
-                  style={tw`w-12 h-12 rounded-full bg-red-500 items-center justify-center mr-4`}
-                >
-                  <Ionicons name="close" size={24} color="white" />
-                </TouchableOpacity>
-                <Animated.View
-                  style={[
-                    tw`w-24 h-24 rounded-full bg-white bg-opacity-20 items-center justify-center border-2 border-white`,
-                    { transform: [{ scale: orbScale }] },
-                  ]}
-                >
-                  <VoiceChatIcon />
+          {!showScanResults && (
+            <View
+              style={tw`absolute bottom-20 left-0 right-0 flex-row justify-center items-center gap-6`}
+            >
+              {activeButton === "voice" && !hasDetectedSpeech ? (
+                <View style={tw`flex-row items-center justify-center`}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setActiveButton(null);
+                      stopRecording();
+                    }}
+                    style={tw`w-12 h-12 rounded-full bg-red-500 items-center justify-center mr-4`}
+                  >
+                    <Ionicons name="close" size={24} color="white" />
+                  </TouchableOpacity>
                   <Animated.View
                     style={[
-                      tw`absolute -inset-4 rounded-full border-2 border-white`,
-                      {
-                        opacity: voiceWaveAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0.5, 0],
-                        }),
-                        transform: [
-                          {
-                            scale: voiceWaveAnim.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: [1, 2],
-                            }),
-                          },
-                        ],
-                      },
+                      tw`w-24 h-24 rounded-full bg-white bg-opacity-20 items-center justify-center border-2 border-white`,
+                      { transform: [{ scale: orbScale }] },
                     ]}
-                  />
-                  {recording && (
-                    <Text classN={`text-white text-xs mt-2`}>Listening...</Text>
-                  )}
-                </Animated.View>
+                  >
+                    <VoiceChatIcon />
+                    <Animated.View
+                      style={[
+                        tw`absolute -inset-4 rounded-full border-2 border-white`,
+                        {
+                          opacity: voiceWaveAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0.5, 0],
+                          }),
+                          transform: [
+                            {
+                              scale: voiceWaveAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [1, 2],
+                              }),
+                            },
+                          ],
+                        },
+                      ]}
+                    />
+                    {recording && (
+                      <Text classN={`text-white text-xs mt-2`}>
+                        Listening...
+                      </Text>
+                    )}
+                  </Animated.View>
+                </View>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={tw`w-16 h-16 rounded-full bg-black bg-opacity-30 items-center justify-center border border-white border-opacity-50`}
+                    onPress={handleVoicePress}
+                  >
+                    <VoiceChatIcon />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={tw`w-20 h-20 rounded-full bg-black bg-opacity-30 items-center justify-center border-2 border-white border-opacity-50`}
+                    onPress={handleFacialScanPress}
+                  >
+                    <FacialVerificationIcon />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={tw`w-16 h-16 rounded-full bg-black bg-opacity-30 items-center justify-center border border-white border-opacity-50`}
+                    onPress={() => setActiveButton("chat")}
+                  >
+                    <ChatIcon />
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          )}
+
+          {/* Scan Results Modal */}
+          {showScanResults && (
+            <View style={tw`px-2 absolute bottom-15 left-0 right-0`}>
+              <View style={tw`bg-white rounded-3xl p-3`}>
+                {/* <TouchableOpacity
+                onPress={closeScanResults}
+                style={tw`absolute top-4 right-4`}
+              >
+                <Ionicons name="close" size={24} color="black" />
+              </TouchableOpacity> */}
+
+                <View style={tw`mb-6`}>
+                  <Text
+                    type="title"
+                    fontSize={18}
+                    classN={`font-bold mt-2 text-left mb-2`}
+                  >
+                    Skin Health
+                  </Text>
+                  <View style={tw`relative w-32 h-32 mb-4 mx-auto`}>
+                    {/* Progress Circle */}
+                    <View
+                      style={tw`w-full h-full rounded-full border-8 border-blue-100 items-center justify-center`}
+                    >
+                      <Text classN={`text-3xl font-bold text-blue-600`}>
+                        85%
+                      </Text>
+                    </View>
+                  </View>
+                  <Text classN={`text-gray-500 text-center`}>
+                    Scan Date: {new Date().toLocaleDateString()}
+                  </Text>
+                </View>
+
+                <View style={tw`flex-row justify-between gap-2 mb-8`}>
+                  {/* Redness Card */}
+                  <View
+                    style={tw`bg-[#F6EBF1] w-[119px] p-2 rounded-[12px] justify-center mb-2`}
+                  >
+                    <View style={tw`flex-row items-center gap-2`}>
+                      <View
+                        style={tw`w-[25px] items-center justify-center h-[25px] rounded-full bg-white`}
+                      >
+                        <DropletIcon />
+                      </View>
+                      <Text fontSize={12} classN={`text-sm text-gray-600 mb-1`}>
+                        Redness
+                      </Text>
+                    </View>
+                    <Text classN={`font-bold mt-3`} fontSize={14}>
+                      95%
+                    </Text>
+                  </View>
+
+                  {/* Hydration Card */}
+                  <View
+                    style={tw`bg-[#E6F3E9] w-[119px] p-2 rounded-[12px] justify-center mb-2`}
+                  >
+                    <View style={tw`flex-row items-center gap-2`}>
+                      <View
+                        style={tw`w-[25px] items-center justify-center h-[25px] rounded-full bg-white`}
+                      >
+                        <DropletIcon />
+                      </View>
+                      <Text fontSize={12} classN={`text-sm text-gray-600 mb-1`}>
+                        Hydration
+                      </Text>
+                    </View>
+                    <Text classN={`font-bold mt-3`} fontSize={14}>
+                      95%
+                    </Text>
+                  </View>
+
+                  {/* Inflammation Card */}
+                  <View
+                    style={tw`bg-[#E5F1F6] w-[119px] p-2 rounded-[12px] justify-center mb-2`}
+                  >
+                    <View style={tw`flex-row items-center gap-2`}>
+                      <View
+                        style={tw`w-[25px] items-center justify-center h-[25px] rounded-full bg-white`}
+                      >
+                        <DropletIcon />
+                      </View>
+                      <Text fontSize={12} classN={`text-sm text-gray-600 mb-1`}>
+                        Inflammation
+                      </Text>
+                    </View>
+                    <Text classN={`font-bold mt-3`} fontSize={14}>
+                      95%
+                    </Text>
+                  </View>
+                </View>
               </View>
-            ) : (
-              <>
+
+              <View style={tw`flex-row mt-4 justify-between`}>
                 <TouchableOpacity
-                  style={tw`w-16 h-16 rounded-full bg-black bg-opacity-30 items-center justify-center border border-white border-opacity-50`}
-                  onPress={handleVoicePress}
+                  style={tw`bg-gray-200 w-[49%] py-3 rounded-lg mr-2 px-4 gap-5 items-center justify-between flex-row`}
                 >
-                  <VoiceChatIcon />
+                  <Text classN={`text-gray-700 font-medium`}>Save Scan</Text>
+
+                  <View
+                    style={tw`h-[32px] w-[32px] rounded-full bg-black items-center justify-center`}
+                  >
+                    <MaterialCommunityIcons
+                      name="arrow-top-right"
+                      size={15}
+                      color="white"
+                    />
+                  </View>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={tw`w-20 h-20 rounded-full bg-black bg-opacity-30 items-center justify-center border-2 border-white border-opacity-50`}
-                  onPress={handleFacialScanPress}
+                  style={tw`w-[49%] bg-gray-200 py-3 rounded-lg mr-2 px-4 gap-5 items-center justify-between flex-row`}
                 >
-                  <FacialVerificationIcon />
+                  <Text classN={`text-black font-medium`}>
+                    View Full Analysis
+                  </Text>
+
+                  <View
+                    style={tw`h-[32px] w-[32px] rounded-full bg-black items-center justify-center`}
+                  >
+                    <MaterialCommunityIcons
+                      name="arrow-top-right"
+                      size={15}
+                      color="white"
+                    />
+                  </View>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={tw`w-16 h-16 rounded-full bg-black bg-opacity-30 items-center justify-center border border-white border-opacity-50`}
-                  onPress={() => setActiveButton("chat")}
-                >
-                  <ChatIcon />
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
+              </View>
+            </View>
+          )}
         </ImageBackground>
       )}
 
