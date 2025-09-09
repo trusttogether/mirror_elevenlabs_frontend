@@ -30,6 +30,7 @@ import * as Speech from "expo-speech";
 import axios from "axios";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { router } from "expo-router";
+import ResultHeader from "../../components/UI/ResultHeader";
 
 interface Message {
   id: number;
@@ -626,7 +627,7 @@ const Scan = () => {
           style={tw`flex-1 pt-12`}
           resizeMode="cover"
         >
-          <DrawerHeader />
+          {showScanResults ? <ResultHeader /> : <DrawerHeader />}
 
           {!showScanResults && (
             <View
