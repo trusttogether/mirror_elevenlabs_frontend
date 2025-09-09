@@ -82,6 +82,7 @@ const RootLayout = () => {
               name="(onboarding)"
               options={{ headerShown: false }}
             />
+            <Stack.Screen name="(pages)" options={{ headerShown: false }} />
           </Stack>
         </ToastProvider>
       </GestureHandlerRootView>

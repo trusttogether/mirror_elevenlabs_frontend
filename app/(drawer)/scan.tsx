@@ -29,6 +29,7 @@ import { Audio } from "expo-av";
 import * as Speech from "expo-speech";
 import axios from "axios";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { router } from "expo-router";
 
 interface Message {
   id: number;
@@ -717,7 +718,7 @@ const Scan = () => {
                     fontSize={18}
                     classN={`font-bold mt-2 text-left mb-2`}
                   >
-                    Skin Health
+                    Your Skin Health
                   </Text>
                   <View style={tw`relative w-32 h-32 mb-4 mx-auto`}>
                     {/* Progress Circle */}
@@ -783,7 +784,12 @@ const Scan = () => {
                       >
                         <DropletIcon />
                       </View>
-                      <Text fontSize={12} classN={`text-sm text-gray-600 mb-1`}>
+                      <Text
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                        fontSize={12}
+                        classN={`text-sm w-[70%] text-gray-600 mb-1`}
+                      >
                         Inflammation
                       </Text>
                     </View>
@@ -796,7 +802,7 @@ const Scan = () => {
 
               <View style={tw`flex-row mt-4 justify-between`}>
                 <TouchableOpacity
-                  style={tw`bg-gray-200 w-[49%] py-3 rounded-lg mr-2 px-4 gap-5 items-center justify-between flex-row`}
+                  style={tw`bg-white w-[49%] py-3 rounded-lg mr-2 px-4 gap-5 border-solid border-[1px] border-[#E8E8E866] items-center justify-between flex-row`}
                 >
                   <Text classN={`text-gray-700 font-medium`}>Save Scan</Text>
 
@@ -811,7 +817,8 @@ const Scan = () => {
                   </View>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={tw`w-[49%] bg-gray-200 py-3 rounded-lg mr-2 px-4 gap-5 items-center justify-between flex-row`}
+                  onPress={() => router.push("/scan-result")}
+                  style={tw`bg-white w-[49%] py-3 rounded-lg mr-2 px-4 gap-5 border-solid border-[1px] border-[#E8E8E866] items-center justify-between flex-row`}
                 >
                   <Text classN={`text-black font-medium`}>
                     View Full Analysis
