@@ -6,6 +6,7 @@ import tw from "twrnc";
 import { BurgerIcon, NotificationsIcon } from "../../assets/icons/drawerIcons";
 import Text from "../UI/Text";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { router } from "expo-router";
 
 interface DrawerHeaderprops {
   title?: string;
@@ -30,7 +31,7 @@ const ResultHeader = ({ title, button, action }: DrawerHeaderprops) => {
       style={tw`flex-row justify-between items-center px-4 py-4 bg-transparent`}
     >
       <TouchableOpacity
-        onPress={toggleDrawer}
+        onPress={() => router.back()}
         style={tw`bg-white rounded-full w-12 h-12 items-center justify-center shadow-md`}
       >
         <MaterialIcons name="arrow-back" size={24} color="black" />

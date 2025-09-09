@@ -4,22 +4,84 @@ import {
   TouchableOpacity,
   Image,
   Animated,
+  Share,
+  Platform,
+  Alert,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Text from "../../components/UI/Text";
 import ResultHeader from "../../components/UI/ResultHeader";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
+import { ToolIcon } from "../../assets/icons/journalIcons";
+import ViewShot from "react-native-view-shot";
 
 const ScanResult = () => {
   const [expandedSections, setExpandedSections] = useState({});
-  const userImage = require("../../assets/images/aiimage.jpg"); // Replace with actual image path
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const userImage = require("../../assets/images/aiimage.jpg");
+  const toolIconRef = useRef(null);
+  const viewShotRef = useRef(null);
 
   const toggleSection = (section: any) => {
     setExpandedSections((prev) => ({
       ...prev,
       [section]: !prev[section],
     }));
+  };
+
+  const handleToolIconPress = () => {
+    toolIconRef.current.measure((x, y, width, height, pageX, pageY) => {
+      setTooltipPosition({
+        x: pageX - 100,
+        y: pageY + height,
+      });
+      setShowTooltip(true);
+    });
+  };
+
+  const handleSaveScan = () => {
+    // Implement save scan functionality
+    console.log("Save scan");
+    setShowTooltip(false);
+  };
+
+  const handleShare = async () => {
+    try {
+      setShowTooltip(false);
+
+      // Capture the view as an image
+      if (viewShotRef.current) {
+        const uri = await viewShotRef.current.capture();
+
+        // Share the image
+        const shareOptions = {
+          title: "My Skin Health Scan",
+          message: "Check out my skin health scan results!",
+          url: uri,
+          type: "image/jpeg",
+        };
+
+        if (Platform.OS === "ios") {
+          // For iOS, we need to use Share.share with a file URL
+          Share.share({
+            url: uri,
+            message: "Check out my skin health scan results!",
+          });
+        } else {
+          // For Android, we can use Share.share with the URI
+          Share.share({
+            url: uri,
+            message: "Check out my skin health scan results!",
+            title: "My Skin Health Scan",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error sharing:", error);
+      Alert.alert("Error", "Failed to share scan results");
+    }
   };
 
   const metricsData = [
@@ -105,132 +167,196 @@ const ScanResult = () => {
 
   return (
     <View style={tw`flex-1 pt-10 bg-gray-50`}>
-      <ResultHeader title="Full Scan Report" />
+      <ResultHeader
+        title="Full Scan Report"
+        button={
+          <TouchableOpacity
+            ref={toolIconRef}
+            onPress={handleToolIconPress}
+            style={tw`h-12 shadow-md w-12 rounded-full items-center justify-center bg-white`}
+          >
+            <ToolIcon />
+          </TouchableOpacity>
+        }
+        action={handleToolIconPress}
+      />
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={tw`pb-8`}
-      >
-        {/* User Image and Glow Score Section */}
-        <View style={tw`flex-row items-center px-5 py-6 bg-white mb-4`}>
-          <Image
-            source={userImage}
-            style={tw`w-[50%] h-[200px] border-4 border-blue-100`}
-            resizeMode="cover"
-          />
+      {/* Tooltip */}
+      {showTooltip && (
+        <View
+          style={[
+            tw`absolute bg-white rounded-lg p-3 shadow-lg z-10`,
+            {
+              top: tooltipPosition.y,
+              left: tooltipPosition.x,
+              shadowColor: "#000",
+              shadowOffset: {
+                width: 0,
+                height: 2,
+              },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              elevation: 5,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={tw`flex-row items-center py-2 px-3`}
+            onPress={handleSaveScan}
+          >
+            <Ionicons name="save-outline" size={16} color="#4B5563" />
+            <Text classN={`ml-2 text-gray-700`}>Save Scan</Text>
+          </TouchableOpacity>
 
-          <View style={tw`ml-6 items-center`}>
-            <View
-              style={tw`w-28 h-28 rounded-full border-8 border-blue-500 items-center justify-center`}
-            >
-              <Text
-                type="title"
-                fontSize={24}
-                fontWeight="bold"
-                classN="text-blue-600"
+          <View style={tw`h-px bg-gray-200 my-1`} />
+
+          <TouchableOpacity
+            style={tw`flex-row items-center py-2 px-3`}
+            onPress={handleShare}
+          >
+            <Ionicons name="share-social-outline" size={16} color="#4B5563" />
+            <Text classN={`ml-2 text-gray-700`}>Share</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Backdrop to close tooltip when tapping outside */}
+      {showTooltip && (
+        <TouchableOpacity
+          style={tw`absolute inset-0 z-0`}
+          activeOpacity={1}
+          onPress={() => setShowTooltip(false)}
+        />
+      )}
+
+      <ViewShot ref={viewShotRef} options={{ format: "jpg", quality: 0.9 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={tw`pb-8`}
+        >
+          {/* User Image and Glow Score Section */}
+          <View style={tw`flex-row items-center px-5 py-6 bg-white mb-4`}>
+            <Image
+              source={userImage}
+              style={tw`w-[50%] h-[200px] border-4 border-blue-100`}
+              resizeMode="cover"
+            />
+
+            <View style={tw`ml-6 items-center`}>
+              <View
+                style={tw`w-28 h-28 rounded-full border-8 border-blue-500 items-center justify-center`}
               >
-                85%
+                <Text
+                  type="title"
+                  fontSize={24}
+                  fontWeight="bold"
+                  classN="text-blue-600"
+                >
+                  85%
+                </Text>
+              </View>
+              <Text type="body" classN="text-gray-500 mt-2">
+                Scan Date: {new Date().toLocaleDateString()}
+              </Text>
+              <Text type="body" classN="text-blue-600 font-medium mt-1">
+                Glow Score
               </Text>
             </View>
-            <Text type="body" classN="text-gray-500 mt-2">
-              Scan Date: {new Date().toLocaleDateString()}
+          </View>
+
+          {/* Goals Card */}
+          <View style={tw`bg-white mx-4 p-5 rounded-xl shadow-sm mb-6`}>
+            <Text type="title" fontSize={20} classN="mb-3">
+              Let's Hit Your Goals
             </Text>
-            <Text type="body" classN="text-blue-600 font-medium mt-1">
-              Glow Score
+            <Text type="body" classN="text-gray-600">
+              Based on your scan, we've identified key areas for improvement.
+              Follow your personalized plan for radiant skin.
             </Text>
           </View>
-        </View>
 
-        {/* Goals Card */}
-        <View style={tw`bg-white mx-4 p-5 rounded-xl shadow-sm mb-6`}>
-          <Text type="title" fontSize={20} classN="mb-3">
-            Let's Hit Your Goals
-          </Text>
-          <Text type="body" classN="text-gray-600">
-            Based on your scan, we've identified key areas for improvement.
-            Follow your personalized plan for radiant skin.
-          </Text>
-        </View>
-
-        {/* Metrics Grid */}
-        <View style={tw`px-4 mb-6`}>
-          <Text type="title" fontSize={18} classN="mb-4 text-center">
-            Skin Health Metrics
-          </Text>
-          <View style={tw`flex-row flex-wrap justify-between`}>
-            {metricsData.map((metric) => (
-              <View
-                key={metric.id}
-                style={[
-                  tw`w-[30%] p-2 rounded-[12px] justify-center mb-4`,
-                  { backgroundColor: metric.color },
-                ]}
-              >
-                <View style={tw`flex-row items-center gap-1 mb-2`}>
-                  <View
-                    style={tw`w-6 h-6 rounded-full bg-white items-center justify-center`}
-                  >
-                    <Text>{metric.icon}</Text>
+          {/* Metrics Grid */}
+          <View style={tw`px-4 mb-6`}>
+            <Text type="title" fontSize={18} classN="mb-4 text-center">
+              Skin Health Metrics
+            </Text>
+            <View style={tw`flex-row flex-wrap justify-between`}>
+              {metricsData.map((metric) => (
+                <View
+                  key={metric.id}
+                  style={[
+                    tw`w-[30%] p-2 rounded-[12px] justify-center mb-4`,
+                    { backgroundColor: metric.color },
+                  ]}
+                >
+                  <View style={tw`flex-row items-center gap-1 mb-2`}>
+                    <View
+                      style={tw`w-6 h-6 rounded-full bg-white items-center justify-center`}
+                    >
+                      <Text>{metric.icon}</Text>
+                    </View>
+                    <Text
+                      type="body"
+                      fontSize={12}
+                      classN="text-gray-600 w-[77%]"
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {metric.title}
+                    </Text>
                   </View>
-                  <Text
-                    type="body"
-                    fontSize={12}
-                    classN="text-gray-600 w-[77%]"
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {metric.title}
+                  <Text type="body" classN="font-bold" fontSize={14}>
+                    {metric.value}
                   </Text>
                 </View>
-                <Text type="body" classN="font-bold" fontSize={14}>
-                  {metric.value}
-                </Text>
+              ))}
+            </View>
+          </View>
+
+          {/* Expandable Detail Sections */}
+          <View style={tw`px-4`}>
+            {detailSections.map((section) => (
+              <View
+                key={section.id}
+                style={tw`bg-white rounded-xl p-4 mb-4 shadow-sm`}
+              >
+                <TouchableOpacity
+                  style={tw`flex-row justify-between items-center`}
+                  onPress={() => toggleSection(section.id)}
+                >
+                  <Text type="title" fontSize={16} classN="text-gray-800">
+                    {section.title}
+                  </Text>
+                  <Ionicons
+                    name={
+                      expandedSections[section.id]
+                        ? "chevron-up"
+                        : "chevron-down"
+                    }
+                    size={20}
+                    color="#6B7280"
+                  />
+                </TouchableOpacity>
+
+                {expandedSections[section.id] && (
+                  <View style={tw`mt-3`}>
+                    {section.points.map((point, index) => (
+                      <Text
+                        key={index}
+                        type="body"
+                        classN="text-gray-600 mb-2"
+                        fontSize={14}
+                      >
+                        {point}
+                      </Text>
+                    ))}
+                  </View>
+                )}
               </View>
             ))}
           </View>
-        </View>
-
-        {/* Expandable Detail Sections */}
-        <View style={tw`px-4`}>
-          {detailSections.map((section) => (
-            <View
-              key={section.id}
-              style={tw`bg-white rounded-xl p-4 mb-4 shadow-sm`}
-            >
-              <TouchableOpacity
-                style={tw`flex-row justify-between items-center`}
-                onPress={() => toggleSection(section.id)}
-              >
-                <Text type="title" fontSize={16} classN="text-gray-800">
-                  {section.title}
-                </Text>
-                <Ionicons
-                  name={
-                    expandedSections[section.id] ? "chevron-up" : "chevron-down"
-                  }
-                  size={20}
-                  color="#6B7280"
-                />
-              </TouchableOpacity>
-
-              {expandedSections[section.id] && (
-                <View style={tw`mt-3`}>
-                  {section.points.map((point, index) => (
-                    <Text
-                      key={index}
-                      type="body"
-                      classN="text-gray-600 mb-2"
-                      fontSize={14}
-                    >
-                      {point}
-                    </Text>
-                  ))}
-                </View>
-              )}
-            </View>
-          ))}
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </ViewShot>
     </View>
   );
 };

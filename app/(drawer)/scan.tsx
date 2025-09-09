@@ -52,6 +52,11 @@ const Scan = () => {
     boolean | null
   >(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showSaveScanModal, setShowSaveScanModal] = useState(false);
+  const [saveDestination, setSaveDestination] = useState(""); // "journal" or "challenges"
+  const [showFolderDropdown, setShowFolderDropdown] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState("");
+  const [personalNote, setPersonalNote] = useState("");
 
   const [cameraActive, setCameraActive] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -62,18 +67,30 @@ const Scan = () => {
     "Avoid obstructions like glasses or hair"
   );
   const [showScanResults, setShowScanResults] = useState(false);
-  const scanLinePosition = useRef(new Animated.Value(0)).current;
-  const cameraRef = useRef(null);
-  const tipTimerRef = useRef(null);
 
-  // Voice animation refs
+  // Animation refs
+  const scanLinePosition = useRef(new Animated.Value(0)).current;
   const orbScale = useRef(new Animated.Value(1)).current;
   const voiceWaveAnim = useRef(new Animated.Value(0)).current;
   const bottomSheetHeight = useRef(new Animated.Value(0)).current;
 
-  const recordingInstanceRef = useRef(null);
-  const speechSimulationRef = useRef(null);
-  const silenceTimerRef = useRef(null);
+  const cameraRef = useRef(null);
+  const tipTimerRef = useRef(null);
+
+  // Folders data
+  const journalFolders = [
+    { id: 1, name: "Daily Skin Log" },
+    { id: 2, name: "Progress Tracking" },
+    { id: 3, name: "Treatment Results" },
+    { id: 4, name: "Monthly Comparisons" },
+  ];
+
+  const challengeFolders = [
+    { id: 1, name: "Hydration Challenge" },
+    { id: 2, name: "Acne Treatment" },
+    { id: 3, name: "Anti-Aging Routine" },
+    { id: 4, name: "Sunscreen Habit" },
+  ];
 
   // Start scan animation
   useEffect(() => {
@@ -194,6 +211,39 @@ const Scan = () => {
       stopRecording();
     };
   }, []);
+
+  const handleSaveScanPress = () => {
+    setShowSaveScanModal(true);
+  };
+
+  const handleSaveDestination = (destination: string) => {
+    setSaveDestination(destination);
+    setSelectedFolder("");
+    setShowFolderDropdown(false);
+  };
+
+  const handleSaveScan = () => {
+    // Implement save functionality here
+    console.log(
+      "Saving scan to:",
+      saveDestination,
+      "Folder:",
+      selectedFolder,
+      "Note:",
+      personalNote
+    );
+    setShowSaveScanModal(false);
+    setSaveDestination("");
+    setSelectedFolder("");
+    setPersonalNote("");
+  };
+
+  const handleCancelSave = () => {
+    setShowSaveScanModal(false);
+    setSaveDestination("");
+    setSelectedFolder("");
+    setPersonalNote("");
+  };
 
   const handleVoicePress = async () => {
     if (activeButton === "voice") {
@@ -706,13 +756,6 @@ const Scan = () => {
           {showScanResults && (
             <View style={tw`px-2 absolute bottom-15 left-0 right-0`}>
               <View style={tw`bg-white rounded-3xl p-3`}>
-                {/* <TouchableOpacity
-                onPress={closeScanResults}
-                style={tw`absolute top-4 right-4`}
-              >
-                <Ionicons name="close" size={24} color="black" />
-              </TouchableOpacity> */}
-
                 <View style={tw`mb-6`}>
                   <Text
                     type="title"
@@ -803,6 +846,7 @@ const Scan = () => {
 
               <View style={tw`flex-row mt-4 justify-between`}>
                 <TouchableOpacity
+                  onPress={handleSaveScanPress}
                   style={tw`bg-white w-[49%] py-3 rounded-lg mr-2 px-4 gap-5 border-solid border-[1px] border-[#E8E8E866] items-center justify-between flex-row`}
                 >
                   <Text classN={`text-gray-700 font-medium`}>Save Scan</Text>
@@ -840,6 +884,188 @@ const Scan = () => {
           )}
         </ImageBackground>
       )}
+
+      {/* Save Scan Modal */}
+      <Modal
+        visible={showSaveScanModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCancelSave}
+      >
+        <View
+          style={tw`flex-1 justify-center items-center bg-black bg-opacity-50 p-4`}
+        >
+          <View style={tw`bg-white rounded-2xl p-6 w-full max-w-md`}>
+            <Text type="title" fontSize={20} classN="text-center mb-2">
+              Where would you like to save this scan?
+            </Text>
+            <Text type="body" classN="text-gray-600 text-center mb-6">
+              Choose a destination for your scan insights
+            </Text>
+
+            {/* Destination Cards */}
+            <View style={tw`flex-row justify-between mb-6`}>
+              <TouchableOpacity
+                onPress={() => handleSaveDestination("journal")}
+                style={[
+                  tw`w-[48%] p-4 rounded-xl border-2 items-center`,
+                  saveDestination === "journal"
+                    ? tw`bg-blue-50 border-blue-500`
+                    : tw`bg-white border-gray-200`,
+                ]}
+              >
+                <Ionicons
+                  name="journal-outline"
+                  size={24}
+                  color={saveDestination === "journal" ? "#3B82F6" : "#6B7280"}
+                />
+                <Text
+                  type="body"
+                  classN={`mt-2 ${
+                    saveDestination === "journal"
+                      ? "text-blue-600 font-medium"
+                      : "text-gray-700"
+                  }`}
+                >
+                  My Journal
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => handleSaveDestination("challenges")}
+                style={[
+                  tw`w-[48%] p-4 rounded-xl border-2 items-center`,
+                  saveDestination === "challenges"
+                    ? tw`bg-blue-50 border-blue-500`
+                    : tw`bg-white border-gray-200`,
+                ]}
+              >
+                <Ionicons
+                  name="trophy-outline"
+                  size={24}
+                  color={
+                    saveDestination === "challenges" ? "#3B82F6" : "#6B7280"
+                  }
+                />
+                <Text
+                  type="body"
+                  classN={`mt-2 ${
+                    saveDestination === "challenges"
+                      ? "text-blue-600 font-medium"
+                      : "text-gray-700"
+                  }`}
+                >
+                  Challenges
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Folder Selection */}
+            {saveDestination && (
+              <View style={tw`mb-6`}>
+                <Text type="body" classN="text-gray-700 mb-3 font-medium">
+                  {saveDestination === "journal"
+                    ? "Select Folder in Daily Journal"
+                    : "Select Folder in Challenges"}
+                </Text>
+
+                <TouchableOpacity
+                  onPress={() => setShowFolderDropdown(!showFolderDropdown)}
+                  style={tw`border border-gray-300 rounded-xl p-4 flex-row justify-between items-center`}
+                >
+                  <Text
+                    classN={`${
+                      selectedFolder ? "text-black" : "text-gray-400"
+                    }`}
+                  >
+                    {selectedFolder || "Select a folder"}
+                  </Text>
+                  <Ionicons
+                    name={showFolderDropdown ? "chevron-up" : "chevron-down"}
+                    size={20}
+                    color="#6B7280"
+                  />
+                </TouchableOpacity>
+
+                {showFolderDropdown && (
+                  <View
+                    style={tw`mt-2 border border-gray-200 rounded-xl max-h-40`}
+                  >
+                    <ScrollView>
+                      {(saveDestination === "journal"
+                        ? journalFolders
+                        : challengeFolders
+                      ).map((folder) => (
+                        <TouchableOpacity
+                          key={folder.id}
+                          onPress={() => {
+                            setSelectedFolder(folder.name);
+                            setShowFolderDropdown(false);
+                          }}
+                          style={tw`p-3 flex-row items-center border-b border-gray-100`}
+                        >
+                          {selectedFolder === folder.name && (
+                            <Ionicons
+                              name="checkmark"
+                              size={16}
+                              color="#3B82F6"
+                              style={tw`mr-2`}
+                            />
+                          )}
+                          <Text
+                            classN={`${
+                              selectedFolder === folder.name
+                                ? "text-blue-600 font-medium"
+                                : "text-gray-700"
+                            }`}
+                          >
+                            {folder.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Personal Note Field */}
+            {saveDestination && (
+              <View style={tw`mb-6`}>
+                <Text type="body" classN="text-gray-700 mb-3 font-medium">
+                  Add Personal Note (Optional)
+                </Text>
+                <TextInput
+                  style={tw`border border-gray-300 rounded-xl p-4 h-20`}
+                  placeholder="Add your notes here..."
+                  multiline
+                  value={personalNote}
+                  onChangeText={setPersonalNote}
+                />
+              </View>
+            )}
+
+            {/* Buttons */}
+            <TouchableOpacity
+              onPress={handleSaveScan}
+              disabled={!selectedFolder}
+              style={[
+                tw`py-4 rounded-xl mb-3 items-center`,
+                selectedFolder ? tw`bg-black` : tw`bg-gray-300`,
+              ]}
+            >
+              <Text classN="text-white font-medium">Save Scan</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleCancelSave}
+              style={tw`py-4 rounded-xl border border-gray-300 items-center`}
+            >
+              <Text classN="text-gray-700">Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={showBottomSheet}
