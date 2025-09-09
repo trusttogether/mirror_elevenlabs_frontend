@@ -115,7 +115,7 @@ const ScanResult = () => {
         <View style={tw`flex-row items-center px-5 py-6 bg-white mb-4`}>
           <Image
             source={userImage}
-            style={tw`w-24 h-24 rounded-full border-4 border-blue-100`}
+            style={tw`w-[50%] h-[200px] border-4 border-blue-100`}
             resizeMode="cover"
           />
 
@@ -143,10 +143,10 @@ const ScanResult = () => {
 
         {/* Goals Card */}
         <View style={tw`bg-white mx-4 p-5 rounded-xl shadow-sm mb-6`}>
-          <Text type="title" fontSize={20} classN="text-center mb-3">
+          <Text type="title" fontSize={20} classN="mb-3">
             Let's Hit Your Goals
           </Text>
-          <Text type="body" classN="text-gray-600 text-center">
+          <Text type="body" classN="text-gray-600">
             Based on your scan, we've identified key areas for improvement.
             Follow your personalized plan for radiant skin.
           </Text>
@@ -162,7 +162,7 @@ const ScanResult = () => {
               <View
                 key={metric.id}
                 style={[
-                  tw`w-[30%] p-3 rounded-[12px] justify-center mb-4`,
+                  tw`w-[30%] p-2 rounded-[12px] justify-center mb-4`,
                   { backgroundColor: metric.color },
                 ]}
               >
@@ -175,14 +175,14 @@ const ScanResult = () => {
                   <Text
                     type="body"
                     fontSize={12}
-                    classN="text-gray-600"
+                    classN="text-gray-600 w-[77%]"
                     numberOfLines={1}
                     ellipsizeMode="tail"
                   >
                     {metric.title}
                   </Text>
                 </View>
-                <Text type="title" classN="font-bold text-center" fontSize={14}>
+                <Text type="body" classN="font-bold" fontSize={14}>
                   {metric.value}
                 </Text>
               </View>
