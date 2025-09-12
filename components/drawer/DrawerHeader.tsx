@@ -5,6 +5,7 @@ import { DrawerActions } from "@react-navigation/native";
 import tw from "twrnc";
 import { BurgerIcon, NotificationsIcon } from "../../assets/icons/drawerIcons";
 import Text from "../UI/Text";
+import { router } from "expo-router";
 
 interface DrawerHeaderprops {
   title?: string;
@@ -20,7 +21,7 @@ const DrawerHeader = ({ title, button, action }: DrawerHeaderprops) => {
   };
 
   const handleNotifications = () => {
-    console.log("Notifications pressed");
+    router.push("/notifications");
     // Add your notifications logic here
   };
 

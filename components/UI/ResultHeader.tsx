@@ -12,9 +12,10 @@ interface DrawerHeaderprops {
   title?: string;
   button?: React.ReactNode;
   action?: () => void;
+  goBack?: () => void;
 }
 
-const ResultHeader = ({ title, button, action }: DrawerHeaderprops) => {
+const ResultHeader = ({ title, button, action, goBack }: DrawerHeaderprops) => {
   const navigation = useNavigation();
 
   const toggleDrawer = () => {
@@ -31,7 +32,7 @@ const ResultHeader = ({ title, button, action }: DrawerHeaderprops) => {
       style={tw`flex-row justify-between items-center px-4 py-4 bg-transparent`}
     >
       <TouchableOpacity
-        onPress={() => router.back()}
+        onPress={goBack}
         style={tw`bg-white rounded-full w-12 h-12 items-center justify-center shadow-md`}
       >
         <MaterialIcons name="arrow-back" size={24} color="black" />

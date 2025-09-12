@@ -36,6 +36,7 @@ import ResultHeader from "../../components/UI/ResultHeader";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
+import { getAuthToken } from "../../stores/useSigninStore";
 
 interface Message {
   id: number;
@@ -201,7 +202,7 @@ const Scan = () => {
 
       try {
         const apiResponse = await axios.post(
-          "https://analysis-api-295037490706.us-central1.run.app/analyze-face/",
+          "https://face-analysis-api-ljw4mgjxlq-uc.a.run.app/analyze-face/",
           formData,
           {
             headers: {
@@ -259,12 +260,13 @@ const Scan = () => {
 
   const processWithTestImage = async () => {
     try {
+      const token = getAuthToken();
       // For bundled assets, we need to use a different approach
       // Since we can't directly access the file, we'll use a base64 representation
       // or fetch the image from a URL if it's available online
 
       // Alternative: Use a publicly accessible test image URL
-      const testImageUrl = "https://placekitten.com/400/400"; // Replace with your actual test image URL
+      const testImageUrl = "../../assets/images/test.jpg"; // Replace with your actual test image URL
 
       const response = await fetch(testImageUrl);
       const blob = await response.blob();
@@ -273,13 +275,13 @@ const Scan = () => {
       formData.append("file", blob, "test_image.jpg");
 
       const apiResponse = await axios.post(
-        "https://analysis-api-295037490706.us-central1.run.app/analyze-face/",
+        "https://face-analysis-api-ljw4mgjxlq-uc.a.run.app/analyze-face/",
         formData,
         {
           headers: {
             "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
           },
-          timeout: 30000,
         }
       );
 
@@ -334,7 +336,7 @@ const Scan = () => {
       );
     }
 
-    Alert.alert("Scan Completed", "Using demo data for demonstration.", [
+    Alert.alert("Scan Completed", "I've analyzed your skin with mock data", [
       { text: "OK", onPress: () => {} },
     ]);
   };
@@ -695,6 +697,7 @@ const Scan = () => {
 
   const closeScanResults = () => {
     setShowScanResults(false);
+    setResult(null);
   };
 
   // Function to calculate the stroke dasharray for the progress circle
@@ -852,7 +855,11 @@ const Scan = () => {
           style={tw`flex-1 pt-12`}
           resizeMode="cover"
         >
-          {showScanResults ? <ResultHeader /> : <DrawerHeader />}
+          {showScanResults ? (
+            <ResultHeader goBack={closeScanResults} />
+          ) : (
+            <DrawerHeader />
+          )}
 
           {!showScanResults && (
             <View
@@ -954,10 +961,10 @@ const Scan = () => {
                   </Text>
                 </View>
 
-                <View style={tw`flex-row justify-between gap-2 mb-8`}>
+                <View style={tw`flex-row flex-wrap  gap-1 mb-8`}>
                   {/* Redness Card */}
                   <View
-                    style={tw`bg-[#F6EBF1] w-[119px] p-2 rounded-[12px] justify-center mb-2`}
+                    style={tw`bg-[#F6EBF1] w-[29%] p-2 rounded-[12px] justify-center mb-2`}
                   >
                     <View style={tw`flex-row items-center gap-2`}>
                       <View
@@ -970,13 +977,32 @@ const Scan = () => {
                       </Text>
                     </View>
                     <Text classN={`font-bold mt-3`} fontSize={14}>
-                      {Math.round(result.raw.hd_redness.ui_score)}%
+                      {Math.round(result.breakdown.clarity * 100)}%
+                    </Text>
+                  </View>
+
+                  {/* Inflammation Card */}
+                  <View
+                    style={tw`bg-[#FDF6E3] w-[37%] p-2 rounded-[12px] justify-center mb-2`}
+                  >
+                    <View style={tw`flex-row items-center gap-2`}>
+                      <View
+                        style={tw`w-[25px] items-center justify-center h-[25px] rounded-full bg-white`}
+                      >
+                        <DropletIcon />
+                      </View>
+                      <Text fontSize={12} classN={`text-sm text-gray-600 mb-1`}>
+                        Inflammation
+                      </Text>
+                    </View>
+                    <Text classN={`font-bold mt-3`} fontSize={14}>
+                      {Math.round(result.breakdown.glow * 100)}%
                     </Text>
                   </View>
 
                   {/* Hydration Card */}
                   <View
-                    style={tw`bg-[#E6F3E9] w-[119px] p-2 rounded-[12px] justify-center mb-2`}
+                    style={tw`bg-[#E8F4F8] w-[31%] p-2 rounded-[12px] justify-center mb-2`}
                   >
                     <View style={tw`flex-row items-center gap-2`}>
                       <View
@@ -989,31 +1015,7 @@ const Scan = () => {
                       </Text>
                     </View>
                     <Text classN={`font-bold mt-3`} fontSize={14}>
-                      {Math.round(result.raw.hd_moisture.ui_score)}%
-                    </Text>
-                  </View>
-
-                  {/* Oiliness Card */}
-                  <View
-                    style={tw`bg-[#E5F1F6] w-[119px] p-2 rounded-[12px] justify-center mb-2`}
-                  >
-                    <View style={tw`flex-row items-center gap-2`}>
-                      <View
-                        style={tw`w-[25px] items-center justify-center h-[25px] rounded-full bg-white`}
-                      >
-                        <DropletIcon />
-                      </View>
-                      <Text
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                        fontSize={12}
-                        classN={`text-sm w-[70%] text-gray-600 mb-1`}
-                      >
-                        Oiliness
-                      </Text>
-                    </View>
-                    <Text classN={`font-bold mt-3`} fontSize={14}>
-                      {Math.round(result.raw.hd_oiliness.ui_score)}%
+                      {Math.round(result.breakdown.hydration * 100)}%
                     </Text>
                   </View>
                 </View>

@@ -7,6 +7,7 @@ const PagesLayout = () => {
   return (
     <Stack>
       <Stack.Screen name="scan-result" options={{ headerShown: false }} />
+      <Stack.Screen name="journals" options={{ headerShown: false }} />
     </Stack>
   );
 };
