@@ -8,6 +8,7 @@ import Modal from "../../components/UI/Modal";
 import Button from "../../components/UI/Button";
 import Form from "../../components/common/Form";
 import AntDesign from "@expo/vector-icons/AntDesign";
+import { router } from "expo-router";
 
 const MyJournal = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -166,7 +167,8 @@ const MyJournal = () => {
         showsVerticalScrollIndicator={false}
       >
         {journals.map((item, index) => (
-          <View
+          <TouchableOpacity
+            onPress={() => router.push(`/journals/${index}`)}
             key={item.id}
             style={tw`bg-white mb-4 rounded-[11px] h-[99px] p-2 flex-row items-center justify-between`}
           >
@@ -197,7 +199,7 @@ const MyJournal = () => {
             >
               <ToolIcon />
             </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         ))}
       </ScrollView>
 
